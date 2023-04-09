@@ -175,7 +175,7 @@ int dist (int x1, int y1, int x2, int y2) {
 }
 
 void draw3D() {
-  int s, w;
+  int s, w, loop;
   int wx[4], wy[4], wz[4];
   float CS = M.cos[P.a], SN = M.sin[P.a];
 
@@ -192,61 +192,70 @@ void draw3D() {
 
   // Draw sectors
   for (s = 0; s < numSect; s++) {
-    S[s].d = 0;          // Clear distance
-    for (w = S[s].ws; w < S[s].we; w++) {
+      S[s].d = 0;          // Clear distance
 
-      // offset bottom 2 points by player
-      // int x1 = 40 - P.x, y1 =  10 - P.y;
-      // int x2 = 40 - P.x, y2 = 190 - P.y;
-      int x1 = W[w].x1 - P.x,
-          y1 = W[w].y1 - P.y;
-      int x2 = W[w].x2 - P.x, 
-          y2 = W[w].y2 - P.y;
+    for (loop = 0; loop < 2; loop++) {
+      for (w = S[s].ws; w < S[s].we; w++) {
 
-      // World X position
-      wx[0] = x1 * CS - y1 * SN;
-      wx[1] = x2 * CS - y2 * SN;
-      wx[2] = wx[0]; // top line has the same x
-      wx[3] = wx[1];
+        // offset bottom 2 points by player
+        // int x1 = 40 - P.x, y1 =  10 - P.y;
+        // int x2 = 40 - P.x, y2 = 190 - P.y;
+        int x1 = W[w].x1 - P.x,
+            y1 = W[w].y1 - P.y;
+        int x2 = W[w].x2 - P.x, 
+            y2 = W[w].y2 - P.y;
 
-      // World Y position (depth)
-      wy[0] = y1 * CS + x1 * SN;
-      wy[1] = y2 * CS + x2 * SN;
-      wy[2] = wy[0]; // top line has the same y
-      wy[3] = wy[1];
+        // swap for surface
+        if (loop == 0) {
+          int swp = x1; x1 = x2; x2 = swp;
+              swp = y1; y1 = y2; y2 = swp;
+        }
 
-      // Store this wall distance
-      S[s].d += dist(0, 0, (wx[0] + wx[1]) / 2, (wy[0] + wy[1]) / 2); 
+        // World X position
+        wx[0] = x1 * CS - y1 * SN;
+        wx[1] = x2 * CS - y2 * SN;
+        wx[2] = wx[0]; // top line has the same x
+        wx[3] = wx[1];
 
-      // World Z position (height)
-      wz[0] = S[s].z1 - P.z /* next for looks */ + ((P.l * wy[0]) / 32.0);
-      wz[1] = S[s].z1 - P.z /* next for looks */ + ((P.l * wy[1]) / 32.0);
-      wz[2] = wz[0] + S[s].z2;
-      wz[3] = wz[1] + S[s].z2;
+        // World Y position (depth)
+        wy[0] = y1 * CS + x1 * SN;
+        wy[1] = y2 * CS + x2 * SN;
+        wy[2] = wy[0]; // top line has the same y
+        wy[3] = wy[1];
 
-      // don't draw if behind the player
-      if (wy[0] < 1 && wy[1] < 1) { continue; }
-      // point 1 behind the player, clip
-      if (wy[0] < 1) {
-        clipBehindPlayer(&wx[0], &wy[0], &wz[0], wx[1], wy[1], wz[1]); // bottom line
-        clipBehindPlayer(&wx[2], &wy[2], &wz[2], wx[3], wy[3], wz[3]); // top line
+        // Store this wall distance
+        S[s].d += dist(0, 0, (wx[0] + wx[1]) / 2, (wy[0] + wy[1]) / 2); 
+
+        // World Z position (height)
+        wz[0] = S[s].z1 - P.z /* next for looks */ + ((P.l * wy[0]) / 32.0);
+        wz[1] = S[s].z1 - P.z /* next for looks */ + ((P.l * wy[1]) / 32.0);
+        wz[2] = wz[0] + S[s].z2;
+        wz[3] = wz[1] + S[s].z2;
+
+        // don't draw if behind the player
+        if (wy[0] < 1 && wy[1] < 1) { continue; }
+        // point 1 behind the player, clip
+        if (wy[0] < 1) {
+          clipBehindPlayer(&wx[0], &wy[0], &wz[0], wx[1], wy[1], wz[1]); // bottom line
+          clipBehindPlayer(&wx[2], &wy[2], &wz[2], wx[3], wy[3], wz[3]); // top line
+        }
+        // point 2 behind player, clip
+        if (wy[1] < 1) {
+          clipBehindPlayer(&wx[1], &wy[1], &wz[1], wx[0], wy[0], wz[0]); // bottom line
+          clipBehindPlayer(&wx[3], &wy[3], &wz[3], wx[2], wy[2], wz[2]); // top line
+        }
+
+
+        // projected screen x, screen y position
+        wx[0] = wx[0] * 200 / wy[0] + SW2; wy[0] = wz[0] * 200 / wy[0] + SH2;
+        wx[1] = wx[1] * 200 / wy[1] + SW2; wy[1] = wz[1] * 200 / wy[1] + SH2;
+        wx[2] = wx[2] * 200 / wy[2] + SW2; wy[2] = wz[2] * 200 / wy[2] + SH2;
+        wx[1] = wx[3] * 200 / wy[3] + SW2; wy[3] = wz[3] * 200 / wy[3] + SH2;
+
+        drawWall(wx[0], wx[1], wy[0], wy[1], wy[2], wy[3], W[w].c);
       }
-      // point 2 behind player, clip
-      if (wy[1] < 1) {
-        clipBehindPlayer(&wx[1], &wy[1], &wz[1], wx[0], wy[0], wz[0]); // bottom line
-        clipBehindPlayer(&wx[3], &wy[3], &wz[3], wx[2], wy[2], wz[2]); // top line
-      }
-
-
-      // projected screen x, screen y position
-      wx[0] = wx[0] * 200 / wy[0] + SW2; wy[0] = wz[0] * 200 / wy[0] + SH2;
-      wx[1] = wx[1] * 200 / wy[1] + SW2; wy[1] = wz[1] * 200 / wy[1] + SH2;
-      wx[2] = wx[2] * 200 / wy[2] + SW2; wy[2] = wz[2] * 200 / wy[2] + SH2;
-      wx[1] = wx[3] * 200 / wy[3] + SW2; wy[3] = wz[3] * 200 / wy[3] + SH2;
-
-      drawWall(wx[0], wx[1], wy[0], wy[1], wy[2], wy[3], W[w].c);
+      S[s].d /= (S[s].we - S[s].ws); // find average sector distance
     }
-    S[s].d /= (S[s].we - S[s].ws); // find average sector distance
   }
 }
 
@@ -305,7 +314,7 @@ int loadWalls[] = {
 
   64,  0, 96,  0, 2,
   96,  0, 96, 32, 3,
-  96, 32,  0, 32, 2,
+  96, 32, 64, 32, 2,
   64, 32, 64,  0, 3,
 
   64, 64, 96, 64, 4,
