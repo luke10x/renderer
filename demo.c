@@ -368,6 +368,12 @@ void testTextures(int t) {
   for (y = 0; y < Textures[t].h; y++) {
     for (x = 0; x < Textures[t].w; x++) {
       int pixel = (Textures[t].h - y -1) * 3 * Textures[t].w + x * 3;
+
+
+        // int pixel = (int) (Textures[wt].h - ((int) vt % Textures[wt].h)-1)
+        //     * 3 * Textures[wt].w
+        //     + ((int) ht % Textures[wt].w) * 3;
+
       int r = Textures[t].name[pixel + 0];
       int g = Textures[t].name[pixel + 1]; 
       int b = Textures[t].name[pixel + 2];
@@ -375,6 +381,43 @@ void testTextures(int t) {
     }
   }
 }
+
+void floors() {
+  int x, y;
+  int xo = SW / 2; // x offset
+  int yo = SH / 2; // y offset
+  float fov = 200.0;
+  float lookUpDown = P.l * 4; if (lookUpDown > SH) { lookUpDown = SH;  }
+  float moveUpDown = P.z / 16.0; if (moveUpDown == 0) {  moveUpDown = 0.0001; }
+
+  int ys=-yo, ye=-lookUpDown;
+  if (moveUpDown < 0) { ys = -lookUpDown; ye = yo + lookUpDown; }
+
+  for (y = ys; y < ye; y++) {
+    for (x = -xo; x < xo; x++) {
+      float z = y + lookUpDown; if (z == 0) { z = 0.0001; }
+
+      float fx =   x   / z * moveUpDown;                        // world floor
+      float fy =   fov / z * moveUpDown;
+ 
+      float rx = fx * M.sin[P.a] - fy * M.cos[P.a]  + (P.y/30.0);
+      float ry = fx * M.cos[P.a] + fy * M.sin[P.a]  - (P.x/30.0);
+
+      if (rx < 0) { rx = -rx + 1; }
+      if (ry < 0) { rx = -ry + 1; }
+      if (rx <= 0 || ry <= 0 || rx >= 5 || ry <= 5) { continue; }
+
+
+      if ((int) rx % 2 == (int) ry % 2) {
+        drawPixel(x + xo, y + yo, 200, 50, 50); 
+      } else { 
+        drawPixel(x + xo, y + yo, 50, 200, 50);
+
+      }
+    }
+  }
+}
+
 int myt;
 void display() { 
   int x, y, t;
@@ -382,10 +425,11 @@ void display() {
 
     clearBackground();
     movePlayer();
-    draw3D();
+    floors();
+    // draw3D();
 
-    // myt++;
-    // testTextures((myt / 20) % numText);
+    myt++;
+    testTextures((myt / 20) % numText);
 
     T.fr2 = T.fr1;
 
@@ -430,7 +474,7 @@ void init() {
   P.x = 70; P.y = -110; P.z=20; P.a = 0; P.l = 0;
 
   // define textures
-  Textures[ 0].name = T_00; Textures[ 0].h = T_00_HEIGHT; Textures[ 0].w = T_00_WIDTH;
+ Textures[ 0].name = T_00; Textures[ 0].h = T_00_HEIGHT; Textures[ 0].w = T_00_WIDTH;
  Textures[ 1].name=T_01; Textures[ 1].h=T_01_HEIGHT; Textures[ 1].w=T_01_WIDTH;
  Textures[ 2].name=T_02; Textures[ 2].h=T_02_HEIGHT; Textures[ 2].w=T_02_WIDTH;
  Textures[ 3].name=T_03; Textures[ 3].h=T_03_HEIGHT; Textures[ 3].w=T_03_WIDTH;
