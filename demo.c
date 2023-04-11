@@ -16,8 +16,36 @@
 #define pixelScale 4/res           // OpenGL pixel scale
 #define GLSW       (SW*pixelScale) // OpenGL window width
 #define GLSH       (SH*pixelScale) // OpenGL window height
-#define numSect    4               // Number of sectors
-#define numWall    16              // Number of walls
+
+
+//textures
+#include "textures/T_NUMBERS.h"
+#include "textures/T_VIEW2D.h"
+#include "textures/T_00.h"
+#include "textures/T_01.h"
+#include "textures/T_02.h"
+#include "textures/T_03.h"
+#include "textures/T_04.h"
+#include "textures/T_05.h"
+#include "textures/T_06.h"
+#include "textures/T_07.h"
+#include "textures/T_08.h"
+#include "textures/T_09.h"
+#include "textures/T_10.h"
+#include "textures/T_11.h"
+#include "textures/T_12.h"
+#include "textures/T_13.h"
+#include "textures/T_14.h"
+#include "textures/T_15.h"
+#include "textures/T_16.h"
+#include "textures/T_17.h"
+#include "textures/T_18.h"
+#include "textures/T_19.h"
+int numText=19;                          //number of textures
+int numSect= 0;                          //number of sectors
+int numWall= 0;                          //number of walls
+
+
 
 typedef struct {
   int fr1, fr2;  // frame1 frame2, to create constant frame rate
@@ -49,18 +77,63 @@ player P;
 typedef struct {
   int x1, y1; // Bottom line point1
   int x2, y2; // Bottom line point2
-  int c;      // wall color
+  int c;      // wall color 
+  int wt,u,v; // wall texture and u/b tile
+  int shade;  // shade of the wall
 } walls;
 
-walls W[130];
+walls W[256];
 
 typedef struct {
   int ws, we; // wall number start and end;
   int z1, z2; // height of bottom and top;
   // int x, y;   // center position for sector
   int d;      // add y distances to sort drawing order
+  int c1, c2;    // bottom and top color
+  int st, ss;    // surface texture,  surface scale
+  int surf[SW];  // to hold point for surface
+  int surface;   // is there surface to draw
 } sectors;
-sectors S[130];
+sectors S[128];
+
+typedef struct 
+{
+ int w,h;                             //texture width/height
+ const unsigned char *name;           //texture name
+} TexureMaps; TexureMaps Textures[64]; //increase for more textures
+
+
+void load()
+{
+ FILE *fp = fopen("level.h","r");
+ if(fp == NULL){ printf("Error opening level.h"); return;}
+ int s,w;
+
+ fscanf(fp,"%i",&numSect);   //number of sectors 
+ for(s=0;s<numSect;s++)      //load all sectors
+ {
+  fscanf(fp,"%i",&S[s].ws);  
+  fscanf(fp,"%i",&S[s].we); 
+  fscanf(fp,"%i",&S[s].z1);  
+  fscanf(fp,"%i",&S[s].z2); 
+  fscanf(fp,"%i",&S[s].st); 
+  fscanf(fp,"%i",&S[s].ss);  
+ }
+ fscanf(fp,"%i",&numWall);   //number of walls 
+ for(s=0;s<numWall;s++)      //load all walls
+ {
+  fscanf(fp,"%i",&W[s].x1);  
+  fscanf(fp,"%i",&W[s].y1); 
+  fscanf(fp,"%i",&W[s].x2);  
+  fscanf(fp,"%i",&W[s].y2); 
+  fscanf(fp,"%i",&W[s].wt);
+  fscanf(fp,"%i",&W[s].u); 
+  fscanf(fp,"%i",&W[s].v);  
+  fscanf(fp,"%i",&W[s].shade);  
+ }
+ fscanf(fp,"%i %i %i %i %i",&P.x,&P.y,&P.z, &P.a,&P.l); //player position, angle, look direction 
+ fclose(fp); 
+}
 
 void pixel(int x, int y, int c) {
   int rgb[3];
@@ -130,7 +203,7 @@ void clipBehindPlayer(
   *y1 = *y1 + s * (y2 - (*y1)); if (*y1 == 0) { *y1 = 1; }
   *z1 = *z1 + s * (z2 - (*z1)); 
 }
-void drawWall(int x1, int x2, int b1, int b2, int t1, int t2, int c) {
+void drawWall(int x1, int x2, int b1, int b2, int t1, int t2, int c, int s) {
   int x, y;
   // hold difference in distance 
   int dyb = b2 - b1; // y distance of bottom line
@@ -156,11 +229,20 @@ void drawWall(int x1, int x2, int b1, int b2, int t1, int t2, int c) {
     if (y2 <      1) { y2 = 1; }
     if (y1 > SH - 1) { y1 = SH - 1; }
     if (y2 > SH - 1) { y2 = SH - 1; }
- 
-// hahah
-    pixel(x, y1, 0); // bottom
-    pixel(x, y2, 0); // bottom
 
+    // Surface
+    if (S[s].surface ==  1) { S[s].surf[x] = y1; continue; } // save bottom points
+    if (S[s].surface ==  2) { S[s].surf[x] = y2; continue; } // save top    points
+    if (S[s].surface == -1) {
+      // bottom
+      for (y = S[s].surf[x]; y < y1; y++) { pixel(x, y, S[s].c1); }
+    }
+    if (S[s].surface == -2) {
+      // top
+      for (y = y1; y < S[s].surf[x]; y++) { pixel(x, y, S[s].c2); }
+    }
+ 
+    // normal wall
     for (y = y1; y < y2; y++) {
       pixel(x, y, c);
     }
@@ -192,7 +274,11 @@ void draw3D() {
 
   // Draw sectors
   for (s = 0; s < numSect; s++) {
-      S[s].d = 0;          // Clear distance
+    S[s].d = 0;          // Clear distance
+
+    if      (P.z < S[s].z1) { S[s].surface = 1; } // bottom surface
+    else if (P.z > S[s].z2) { S[s].surface = 2; } // top    surface
+    else                    { S[s].surface = 0; } // no     surface
 
     for (loop = 0; loop < 2; loop++) {
       for (w = S[s].ws; w < S[s].we; w++) {
@@ -229,8 +315,8 @@ void draw3D() {
         // World Z position (height)
         wz[0] = S[s].z1 - P.z /* next for looks */ + ((P.l * wy[0]) / 32.0);
         wz[1] = S[s].z1 - P.z /* next for looks */ + ((P.l * wy[1]) / 32.0);
-        wz[2] = wz[0] + S[s].z2;
-        wz[3] = wz[1] + S[s].z2;
+        wz[2] = S[s].z2 - P.z /* next for looks */ + ((P.l * wy[0]) / 32.0);
+        wz[3] = S[s].z2 - P.z /* next for looks */ + ((P.l * wy[1]) / 32.0);
 
         // don't draw if behind the player
         if (wy[0] < 1 && wy[1] < 1) { continue; }
@@ -252,9 +338,10 @@ void draw3D() {
         wx[2] = wx[2] * 200 / wy[2] + SW2; wy[2] = wz[2] * 200 / wy[2] + SH2;
         wx[1] = wx[3] * 200 / wy[3] + SW2; wy[3] = wz[3] * 200 / wy[3] + SH2;
 
-        drawWall(wx[0], wx[1], wy[0], wy[1], wy[2], wy[3], W[w].c);
+        drawWall(wx[0], wx[1], wy[0], wy[1], wy[2], wy[3], W[w].c, s);
       }
       S[s].d /= (S[s].we - S[s].ws); // find average sector distance
+      S[s].surface *= -1;            // flip to negative to draw surface
     }
   }
 }
@@ -278,55 +365,25 @@ void display() {
 }
 
 void KeysDown(unsigned char key, int x, int y) {
-  if (key=='w'==1) { K.w  = 1; }
-  if (key=='s'==1) { K.s  = 1; }
-  if (key=='a'==1) { K.a  = 1; }
-  if (key=='d'==1) { K.d  = 1; }
-  if (key=='m'==1) { K.m  = 1; }
-  if (key==','==1) { K.sl = 1; }
-  if (key=='.'==1) { K.sr = 1; }
+  if (key=='w') { K.w  = 1; }
+  if (key=='s') { K.s  = 1; }
+  if (key=='a') { K.a  = 1; }
+  if (key=='d') { K.d  = 1; }
+  if (key=='m') { K.m  = 1; }
+  if (key==',') { K.sl = 1; }
+  if (key=='.') { K.sr = 1; }
+  if (key==13) { load(); }
 }
 
 void KeysUp(unsigned char key, int x, int y) {
-  if (key=='w'==1) { K.w  = 0; }
-  if (key=='s'==1) { K.s  = 0; }
-  if (key=='a'==1) { K.a  = 0; }
-  if (key=='d'==1) { K.d  = 0; }
-  if (key=='m'==1) { K.m  = 0; }
-  if (key==','==1) { K.sl = 0; }
-  if (key=='.'==1) { K.sr = 0; }
+  if (key=='w') { K.w  = 0; }
+  if (key=='s') { K.s  = 0; }
+  if (key=='a') { K.a  = 0; }
+  if (key=='d') { K.d  = 0; }
+  if (key=='m') { K.m  = 0; }
+  if (key==',') { K.sl = 0; }
+  if (key=='.') { K.sr = 0; }
 }
-
-int loadSectors[] = {
-  // wall-start, wall-end, z1 height, z2 height
-  0,   4, 0, 40, // sector 1
-  4,   8, 0, 40, // sector 2
-  8,  12, 0, 40, // sector 3
-  12, 16, 0, 40, // sector 4 
-};
-
-int loadWalls[] = {
-  // x1, y1, x2, y2, color
-   0,  0, 32,  0, 0,
-  32,  0, 32, 32, 1,
-  32, 32,  0, 32, 0,
-   0, 32,  0,  0, 1,
-
-  64,  0, 96,  0, 2,
-  96,  0, 96, 32, 3,
-  96, 32, 64, 32, 2,
-  64, 32, 64,  0, 3,
-
-  64, 64, 96, 64, 4,
-  96, 64, 96, 96, 5,
-  96, 96, 64, 96, 4,
-  64, 96, 64, 64, 5,
-
-   0, 64, 32, 64, 6,
-  32, 64, 32, 96, 7,
-  32, 96,  0, 96, 6,
-   0, 96,  0, 64, 7,
-};
 
 void init() {
   int x;
@@ -340,22 +397,24 @@ void init() {
   P.x = 70; P.y = -110; P.z=20; P.a = 0; P.l = 0;
 
   // load sectors
-  int s, w, v1 = 0, v2 = 0;
-  for (s = 0; s < numSect; s++) {
-    S[s].ws = loadSectors[v1 + 0]; // wall start number
-    S[s].we = loadSectors[v1 + 1]; // wall end number
-    S[s].z1 = loadSectors[v1 + 2]; // sector bottome height
-    S[s].z2 = loadSectors[v1 + 3] - loadSectors[v1 + 2];
-    v1 += 4;
-    for (w = S[s].ws; w < S[s].we; w++) {
-      W[w].x1 = loadWalls[v2 + 0]; // bottom x1
-      W[w].y1 = loadWalls[v2 + 1]; // bottom x2
-      W[w].x2 = loadWalls[v2 + 2]; // bottom y1
-      W[w].y2 = loadWalls[v2 + 3]; // bottom y2
-      W[w].c  = loadWalls[v2 + 4]; // wall color
-      v2 += 5;
-    }
-  }
+  // int s, w, v1 = 0, v2 = 0;
+  // for (s = 0; s < numSect; s++) {
+  //   S[s].ws = loadSectors[v1 + 0]; // wall start number
+  //   S[s].we = loadSectors[v1 + 1]; // wall end number
+  //   S[s].z1 = loadSectors[v1 + 2]; // sector bottome height
+  //   S[s].z2 = loadSectors[v1 + 3] - loadSectors[v1 + 2]; // sector top height
+  //   S[s].c1 = loadSectors[v1 + 4]; // sector top color
+  //   S[s].c2 = loadSectors[v1 + 5]; // sector bottom color
+  //   v1 += 6;
+  //   for (w = S[s].ws; w < S[s].we; w++) {
+  //     W[w].x1 = loadWalls[v2 + 0]; // bottom x1
+  //     W[w].y1 = loadWalls[v2 + 1]; // bottom x2
+  //     W[w].x2 = loadWalls[v2 + 2]; // bottom y1
+  //     W[w].y2 = loadWalls[v2 + 3]; // bottom y2
+  //     W[w].c  = loadWalls[v2 + 4]; // wall color
+  //     v2 += 5;
+  //   }
+  // }
 }
 
 int main(int argc, char* argv[]) {
