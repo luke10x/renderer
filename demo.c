@@ -203,7 +203,7 @@ void clipBehindPlayer(
   *y1 = *y1 + s * (y2 - (*y1)); if (*y1 == 0) { *y1 = 1; }
   *z1 = *z1 + s * (z2 - (*z1)); 
 }
-void drawWall(int x1, int x2, int b1, int b2, int t1, int t2, int c, int s) {
+void drawWall(int x1, int x2, int b1, int b2, int t1, int t2, int s, int w, int frontBack) {
   int x, y;
   // hold difference in distance 
   int dyb = b2 - b1; // y distance of bottom line
@@ -213,10 +213,10 @@ void drawWall(int x1, int x2, int b1, int b2, int t1, int t2, int c, int s) {
   int xs = x1;        // hold inital x1 starting position
 
   // Clip X
-  if (x1 <      1) { x1 = 1; }
-  if (x2 <      1) { x2 = 1; }
-  if (x1 > SW - 1) { x1 = SW - 1; }
-  if (x2 > SW - 1) { x2 = SW - 1; }
+  if (x1 <  0) { x1 = 0; }
+  if (x2 <  0) { x2 = 0; }
+  if (x1 > SW) { x1 = SW; }
+  if (x2 > SW) { x2 = SW; }
 
   // draw x verticle lines
   for (x = x1; x < x2; x++) {
@@ -225,27 +225,29 @@ void drawWall(int x1, int x2, int b1, int b2, int t1, int t2, int c, int s) {
     int y2 = dyt * (x - xs + 0.5) / dx + t1;
 
     // Clip Y
-    if (y1 <      1) { y1 = 1; }
-    if (y2 <      1) { y2 = 1; }
-    if (y1 > SH - 1) { y1 = SH - 1; }
-    if (y2 > SH - 1) { y2 = SH - 1; }
+    if (y1 <   0) { y1 = 0; }
+    if (y2 <   0) { y2 = 0; }
+    if (y1 > SH) { y1 = SH; }
+    if (y2 > SH) { y2 = SH; }
 
-    // Surface
-    if (S[s].surface ==  1) { S[s].surf[x] = y1; continue; } // save bottom points
-    if (S[s].surface ==  2) { S[s].surf[x] = y2; continue; } // save top    points
-    if (S[s].surface == -1) {
-      // bottom
-      for (y = S[s].surf[x]; y < y1; y++) { pixel(x, y, S[s].c1); }
+    
+    // draw front facing walls
+    if (frontBack == 0) {
+      if (S[s].surface ==  1) { S[s].surf[x] = y1; } // bottom surface save top row
+      if (S[s].surface ==  2) { S[s].surf[x] = y2; } // top surface save top row
+      for (y = y1; y < y2; y++) { pixel(x, y, 0); }
     }
-    if (S[s].surface == -2) {
-      // top
-      for (y = y1; y < S[s].surf[x]; y++) { pixel(x, y, S[s].c2); }
+    // draw back wall and surface
+    if (frontBack == 1) {
+      if (S[s].surface ==  1) { y2 = S[s].surf[x]; }
+      if (S[s].surface ==  2) {y1 = S[s].surf[x]; }
+      for (y = y1; y < y2; y++) { pixel(x, y, 2); }
+
     }
- 
     // normal wall
-    for (y = y1; y < y2; y++) {
-      pixel(x, y, c);
-    }
+    // for (y = y1; y < y2; y++) {
+    //   pixel(x, y, c);
+    // }
   }
 }
 
@@ -257,7 +259,7 @@ int dist (int x1, int y1, int x2, int y2) {
 }
 
 void draw3D() {
-  int s, w, loop;
+  int x, s, w, frontBack, cycles;
   int wx[4], wy[4], wz[4];
   float CS = M.cos[P.a], SN = M.sin[P.a];
 
@@ -276,11 +278,11 @@ void draw3D() {
   for (s = 0; s < numSect; s++) {
     S[s].d = 0;          // Clear distance
 
-    if      (P.z < S[s].z1) { S[s].surface = 1; } // bottom surface
-    else if (P.z > S[s].z2) { S[s].surface = 2; } // top    surface
-    else                    { S[s].surface = 0; } // no     surface
+    if      (P.z < S[s].z1) { S[s].surface = 1; cycles=2; for(x=0; x<SW; x++) { S[s].surf[x]=SH; } } // bottom surface
+    else if (P.z > S[s].z2) { S[s].surface = 2; cycles=2; for(x=0; x<SW; x++) { S[s].surf[x]= 0; }} // top    surface
+    else                    { S[s].surface = 0; cycles=1; } // no     surface
 
-    for (loop = 0; loop < 2; loop++) {
+    for (frontBack = 0; frontBack < cycles; frontBack++) {
       for (w = S[s].ws; w < S[s].we; w++) {
 
         // offset bottom 2 points by player
@@ -292,7 +294,7 @@ void draw3D() {
             y2 = W[w].y2 - P.y;
 
         // swap for surface
-        if (loop == 0) {
+        if (frontBack == 1) {
           int swp = x1; x1 = x2; x2 = swp;
               swp = y1; y1 = y2; y2 = swp;
         }
@@ -338,10 +340,10 @@ void draw3D() {
         wx[2] = wx[2] * 200 / wy[2] + SW2; wy[2] = wz[2] * 200 / wy[2] + SH2;
         wx[1] = wx[3] * 200 / wy[3] + SW2; wy[3] = wz[3] * 200 / wy[3] + SH2;
 
-        drawWall(wx[0], wx[1], wy[0], wy[1], wy[2], wy[3], W[w].c, s);
+        drawWall(wx[0], wx[1], wy[0], wy[1], wy[2], wy[3], s, w, frontBack);
       }
       S[s].d /= (S[s].we - S[s].ws); // find average sector distance
-      S[s].surface *= -1;            // flip to negative to draw surface
+      // S[s].surface *= -1;            // flip to negative to draw surface
     }
   }
 }
