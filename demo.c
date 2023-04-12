@@ -254,15 +254,53 @@ void drawWall(int x1, int x2, int b1, int b2, int t1, int t2, int s, int w, int 
 
     // draw back wall and surface
     if (frontBack == 1) {
-      if (S[s].surface ==  1) { y2 = S[s].surf[x]; }
-      if (S[s].surface ==  2) {y1 = S[s].surf[x]; }
-      for (y = y1; y < y2; y++) { drawPixel(x, y, 255, 0, 0); }
+
+      int xo = SW / 2; // x offset
+      int yo = SH / 2; // y offset
+      float fov = 200.0;
+      int x2 = x - xo;
+      int wo; // wall offset
+      float tile = S[s].ss * 70;
+
+      if (S[s].surface ==  1) { y2 = S[s].surf[x]; wo = S[s].z1; } // bottom surface
+      if (S[s].surface ==  2) {y1 = S[s].surf[x]; wo = S[s].z2; }  // top surface
+  
+      float lookUpDown = P.l * 6.2;         if (lookUpDown > SH) { lookUpDown = SH;  }
+      float moveUpDown = (P.z - wo) / yo; if (moveUpDown == 0) {  moveUpDown = 0.0001; }
+      int ys=y1 - yo, ye = y2 - yo;
+      
+      // if (moveUpDown < 0) { ys = -lookUpDown; ye = yo + lookUpDown; }
+  for (y = ys; y < ye; y++) { 
+      float z = y + lookUpDown; if (z == 0) { z = 0.0001; }
+
+      float fx =   x2   / z * moveUpDown * tile;                        // world floor
+      float fy =   fov / z * moveUpDown * tile;  
+ 
+      float rx = fx * M.sin[P.a] - fy * M.cos[P.a]  + (P.y/60.0 * tile);
+      float ry = fx * M.cos[P.a] + fy * M.sin[P.a]  - (P.x/60.0 * tile);
+
+      if (rx < 0) { rx = -rx + 1; }
+      if (ry < 0) { rx = -ry + 1; }
+      // if (rx <= 0 || ry <= 0 || rx >= 5 || ry <= 5) { continue; }
+
+      int st = S[s].st;
+              int pixel = (int) (Textures[wt].h - ((int) vt % Textures[wt].h)-1)
+            * 3 * Textures[wt].w
+            + ((int) ht % Textures[wt].w) * 3;
+
+      int r = Textures[wt].name[pixel + 0]; 
+      int g = Textures[wt].name[pixel + 1];
+      int b = Textures[wt].name[pixel + 2];
+      drawPixel(x2 + xo, y + yo, r, g, b);
+  }
+  ////
+
+      // if (S[s].surface ==  1) { y2 = S[s].surf[x]; }
+      // if (S[s].surface ==  2) {y1 = S[s].surf[x]; }
+      // for (y = y1; y < y2; y++) { drawPixel(x, y, 255, 0, 0); }
 
     }
-    // normal wall
-    // for (y = y1; y < y2; y++) {
-    //   pixel(x, y, c);
-    // }
+
   }
 }
 
@@ -369,11 +407,6 @@ void testTextures(int t) {
     for (x = 0; x < Textures[t].w; x++) {
       int pixel = (Textures[t].h - y -1) * 3 * Textures[t].w + x * 3;
 
-
-        // int pixel = (int) (Textures[wt].h - ((int) vt % Textures[wt].h)-1)
-        //     * 3 * Textures[wt].w
-        //     + ((int) ht % Textures[wt].w) * 3;
-
       int r = Textures[t].name[pixel + 0];
       int g = Textures[t].name[pixel + 1]; 
       int b = Textures[t].name[pixel + 2];
@@ -425,8 +458,8 @@ void display() {
 
     clearBackground();
     movePlayer();
-    floors();
-    // draw3D();
+    // floors();
+    draw3D();
 
     myt++;
     testTextures((myt / 20) % numText);
