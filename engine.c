@@ -107,6 +107,7 @@ typedef struct {
   float x2, y2, z2; // Coordinates of second vertex
   float x3, y3, z3; // Coordinates of third vertex
   int c;
+  float us, vs;
 } Face;
 //  x,  y,  z
 
@@ -115,30 +116,39 @@ Face faces[] = {
     0,   200,  30,
     0,   200,   0,
     100, 200,   0,
-    1 // color
+    1, 1, 1 // color, u-scale, v-scale
   }, {
     0,   250,   0,
     0,   250,  30,
     100, 250,   0,
-    2 // color
+    2 , 1 // color, u-scale, v-sclae
   },{
     200, 0,   30,
     200, 0,    0,
     200, 100,  0,
-    2 // color
+    2 , 1, 1// color
+  },
+  
+  {
+     50,   150,  70,
+
+    -10,   150,  70,
+
+     60,   150,   0,
+
+
+
+
+
+
+
+
+    2 , -1, -1// color
   },{
      0,    150,   0,
     60,   150,    0,
     -10,   150,  70,
-    2 // color
-  },
-  {
-     50,   150,  70,
-    -10,   150,  70,
-     60,   150,   0,
-
-
-    2 // color
+    2 , 1, 1
   }
 }; 
 
@@ -648,9 +658,22 @@ void project(float x, float y, float z, float rotation_z, float rotation_x, Face
             if (found != 0) { 
               int wt = 0;
 
-              int pixel = (int) (Textures[wt].h - ((int) v % Textures[wt].h)-1)
+              // v *= found->vs;
+              int pixel;
+              if (found->us == 1) {
+
+            pixel = (int) (Textures[wt].h - ((int) v % Textures[wt].h)-1)
+                  * 3 * Textures[wt].w
+                  + 
+                    (int) (Textures[wt].w - ((int) u % Textures[wt].w)-1)
+                   * 3;
+              } else {
+
+               pixel = (int) (int) v % Textures[wt].h
                   * 3 * Textures[wt].w
                   + ((int) u % Textures[wt].w) * 3;
+
+              }
 
               int r = Textures[wt].name[pixel + 0]; if (r < 0) { r = 0; }
               int g = Textures[wt].name[pixel + 1]; if (g < 0) { g = 0; }
