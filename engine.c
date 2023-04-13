@@ -107,13 +107,15 @@ typedef struct {
   float x2, y2, z2; // Coordinates of second vertex
   float x3, y3, z3; // Coordinates of third vertex
 } Face;
-
+//  x,  y,  z
 Face face = {
-   100, 0,  100,
 
-  -100, 0, -100,
-  -100, 0,  100
+  0,  200,   30,
+  0,  200,    0,
+
+  100, 200,   0
 };
+
 
 void load()
 {
@@ -563,6 +565,9 @@ Face* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, 
 
 
 void project(float x, float y, float z, float rx, float ry, float rz, Face *faces) {
+
+  // rz = 2* M_PI;
+  // ry = 2* M_PI;
     // Calculate the field of view in radians
     float fov = 90.0f * M_PI / 180.0f;
     // Calculate the angle step size for both horizontal and vertical directions
@@ -573,14 +578,16 @@ void project(float x, float y, float z, float rx, float ry, float rz, Face *face
     // Calculate the initial horizontal and vertical angles
     float h_angle = -(fov / 2.0f);
     float v_angle = -(fov / 2.0f) * aspect_ratio;
-    
-    for (int j = 0; j < SW; j++) {
+
     // Loop through every pixel in the screen
-        for (int i = 0; i < SH; i++) {
+    for (int i = 0; i < SW; i++) {
+      for (int j = 0; j < SH; j++) {
+
             // Calculate the direction vector based on the current horizontal and vertical angles
-            float dir_x = cos(h_angle) * cos(v_angle);
-            float dir_y = sin(v_angle);
-            float dir_z = sin(h_angle) * cos(v_angle);
+            float dir_y = -1 * cos(h_angle) * cos(v_angle);
+            float dir_x = -1 * sin(v_angle);
+            float dir_z = -1 * sin(h_angle) * cos(v_angle);
+
             // Normalize the direction vector
             float length = sqrt(dir_x * dir_x + dir_y * dir_y + dir_z * dir_z);
             dir_x /= length;
@@ -590,18 +597,11 @@ void project(float x, float y, float z, float rx, float ry, float rz, Face *face
             Face* found = raycast(
               x, y, z,
               dir_x, dir_y, dir_z,
-              // 0, 0, 1,
-              // 0, 0.5, 0,
               faces, 1);
 
-              // printf("faycast(%f, %f, %f, %f, %f, %f)", x, y, z,
-              // dir_x, dir_y, dir_z);
-
-            if (found == NULL) {} else {
-            drawPixel( i,j, 200, 100, 100);
-
+            if (found != 0) {
+              drawPixel( i, j, 200, 200, 100);
             }
-
 
             // Increment the horizontal angle by the angle step size
             h_angle += angle_step;
