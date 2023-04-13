@@ -126,6 +126,18 @@ Face faces[] = {
     200, 0,    0,
     200, 100,  0,
     2 // color
+  },{
+    -10,   150,  70,
+     0,    150,   0,
+    60,   150,    0,
+    2 // color
+  },
+  {
+     60,   150,   0,
+     50,   150,  70,
+    -10,   150,  70,
+
+    2 // color
   }
 }; 
 
@@ -629,11 +641,11 @@ void project(float x, float y, float z, float rotation_z, float rotation_x, Face
             Face* found = raycast(
               x, y, z,
               new_dir_x, new_dir_y, new_dir_z, 
-              faces, 3,
+              faces, 5,
               &u, &v
             );
             if (found != 0) { 
-              int wt = 3;
+              int wt = 0;
 
               int pixel = (int) (Textures[wt].h - ((int) v % Textures[wt].h)-1)
                   * 3 * Textures[wt].w
