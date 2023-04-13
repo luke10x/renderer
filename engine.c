@@ -564,10 +564,7 @@ Face* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, 
 }
 
 
-void project(float x, float y, float z, float rx, float ry, float rz, Face *faces) {
-
-  // rz = 2* M_PI;
-  // ry = 2* M_PI;
+void project(float x, float y, float z, float rotation, Face *faces) {
     // Calculate the field of view in radians
     float fov = 90.0f * M_PI / 180.0f;
     // Calculate the angle step size for both horizontal and vertical directions
@@ -583,25 +580,28 @@ void project(float x, float y, float z, float rx, float ry, float rz, Face *face
     for (int i = 0; i < SW; i++) {
       for (int j = 0; j < SH; j++) {
 
-            // Calculate the direction vector based on the current horizontal and vertical angles
+            // Calculate the direction vector based on the current horizontal and vertical angles and rotation
             float dir_y = cos(h_angle) * cos(v_angle);
             float dir_x = sin(v_angle);
             float dir_z = sin(h_angle) * cos(v_angle);
 
-            // Normalize the direction vector
-            float length = sqrt(dir_x * dir_x + dir_y * dir_y + dir_z * dir_z);
-            dir_x /= length;
-            dir_y /= length;
-            dir_z /= length;
-            // Call the raycast function for the current pixel and direction
-            Face* found = raycast(
-              x, y, z,
-              dir_x, dir_y, dir_z,
-              faces, 1);
+            float cos_rot = cos(-rotation);
+            float sin_rot = sin(-rotation);
 
-            if (found != 0) {
-              drawPixel( i, j, 200, 200, 100);
-            }
+            // rotate by rotation on z axis
+            float new_dir_x = dir_x * cos_rot - dir_y * sin_rot;
+            float new_dir_y = dir_x * sin_rot + dir_y * cos_rot;
+            float new_dir_z = dir_z;
+
+            // Normalize the direction vector
+            float length = sqrt(new_dir_x * new_dir_x + new_dir_y * new_dir_y + new_dir_z * new_dir_z);
+            new_dir_x /= length;
+            new_dir_y /= length;
+            new_dir_z /= length;
+
+            // Call the raycast function for the current pixel and direction
+            Face* found = raycast(x, y, z, new_dir_x, new_dir_y, new_dir_z, faces, 1);
+            if (found != 0) { drawPixel( i, j, 200, 200, 100); }
 
             // Increment the horizontal angle by the angle step size
             h_angle += angle_step;
@@ -629,12 +629,14 @@ void display() {
     float y = P.y;
     float z = P.z;
 
-    float rx = M_PI*0.5;
+    // float rx = M_PI*0.5;
     float ry = M_PI*0.5;
     float rz = M_PI*0.5;
 
+float rx = 0;
+float rotation_angle = P.a * M_PI / 180.0;
 
-    project(x, y, z, rx, ry, rz, &face );
+    project(x, y, z, rotation_angle, &face );
 
     // myt++;
     // testTextures((myt / 20) % numText);
@@ -682,7 +684,7 @@ void init() {
   // init character
   P.x = 100; P.y = 110; P.z=20; P.a = 0; P.l = 0;
 
-  // define textures
+ // define textures
  Textures[ 0].name = T_00; Textures[ 0].h = T_00_HEIGHT; Textures[ 0].w = T_00_WIDTH;
  Textures[ 1].name=T_01; Textures[ 1].h=T_01_HEIGHT; Textures[ 1].w=T_01_WIDTH;
  Textures[ 2].name=T_02; Textures[ 2].h=T_02_HEIGHT; Textures[ 2].w=T_02_WIDTH;
