@@ -102,6 +102,18 @@ typedef struct
  const unsigned char *name;           //texture name
 } TexureMaps; TexureMaps Textures[64]; //increase for more textures
 
+typedef struct {
+  float x1, y1, z1; // Coordinates of first vertex
+  float x2, y2, z2; // Coordinates of second vertex
+  float x3, y3, z3; // Coordinates of third vertex
+} Face;
+
+Face face = {
+   100, 0,  100,
+
+  -100, 0, -100,
+  -100, 0,  100
+};
 
 void load()
 {
@@ -179,6 +191,8 @@ void movePlayer() {
   if (K.d == 1 && K.m == 1) { P.l+=1; printf("look down\n"); }
   if (K.w == 1 && K.m == 1) { P.z-=4; printf("move up\n"); }
   if (K.s == 1 && K.m == 1) { P.z+=4; printf("move down\n"); }
+
+  printf("X=%d Y=%d Z=%d a=%d l=%d \n", P.x, P.y, P.z, P.a, P.l);
 }
 
 void clipBehindPlayer(
@@ -247,6 +261,7 @@ void drawWall(int x1, int x2, int b1, int b2, int t1, int t2, int s, int w, int 
         int g = Textures[wt].name[pixel + 1] - W[w].shade / 3; if (g < 0) { g = 0; }
         int b = Textures[wt].name[pixel + 2] - W[w].shade / 3; if (b < 0) { b = 0; }
         drawPixel(x, y, r, g, b);
+
         vt += vt_step;
       }
       ht += ht_step;
@@ -451,6 +466,154 @@ void floors() {
   }
 }
 
+
+#define EPSILON 0.000001
+
+typedef struct {
+    float x, y, z;
+} Point;
+
+// typedef struct {
+//     Point v1, v2, v3;
+// } Face;
+
+float dot_product(Point a, Point b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+Point cross_product(Point a, Point b) {
+    Point result;
+    result.x = a.y * b.z - a.z * b.y;
+    result.y = a.z * b.x - a.x * b.z;
+    result.z = a.x * b.y - a.y * b.x;
+    return result;
+}
+
+Point subtract(Point a, Point b) {
+    Point result;
+    result.x = a.x - b.x;
+    result.y = a.y - b.y;
+    result.z = a.z - b.z;
+    return result;
+}
+
+float magnitude(Point a) {
+    return sqrtf(a.x * a.x + a.y * a.y + a.z * a.z);
+}
+
+Point normalize(Point a) {
+    Point result;
+    float mag = magnitude(a);
+    result.x = a.x / mag;
+    result.y = a.y / mag;
+    result.z = a.z / mag;
+    return result;
+}
+
+Face* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, Face *faces, int num_faces) {
+    float min_distance = INFINITY;
+    Face* closest_face = NULL;
+    for (int i = 0; i < num_faces; i++) {
+        float x1 = faces[i].x1;
+        float y1 = faces[i].y1;
+        float z1 = faces[i].z1;
+        float x2 = faces[i].x2;
+        float y2 = faces[i].y2;
+        float z2 = faces[i].z2;
+        float x3 = faces[i].x3;
+        float y3 = faces[i].y3;
+        float z3 = faces[i].z3;
+
+        float e1x = x2 - x1;
+        float e1y = y2 - y1;
+        float e1z = z2 - z1;
+        float e2x = x3 - x1;
+        float e2y = y3 - y1;
+        float e2z = z3 - z1;
+        float px = dir_y * e2z - dir_z * e2y;
+        float py = dir_z * e2x - dir_x * e2z;
+        float pz = dir_x * e2y - dir_y * e2x;
+        float det = e1x * px + e1y * py + e1z * pz;
+        if (det > -EPSILON && det < EPSILON) {
+            continue;
+        }
+        float inv_det = 1.0f / det;
+        float tx = x - x1;
+        float ty = y - y1;
+        float tz = z - z1;
+        float u = (tx * px + ty * py + tz * pz) * inv_det;
+        if (u < 0.0f || u > 1.0f) {
+            continue;
+        }
+        float qx = ty * e1z - tz * e1y;
+        float qy = tz * e1x - tx * e1z;
+        float qz = tx * e1y - ty * e1x;
+        float v = (dir_x * qx + dir_y * qy + dir_z * qz) * inv_det;
+        if (v < 0.0f || u + v > 1.0f) {
+            continue;
+        }
+        float t = (e2x * qx + e2y * qy + e2z * qz) * inv_det;
+        if (t < min_distance) {
+            min_distance = t;
+            closest_face = &faces[i];
+        }
+    }
+    return closest_face;
+}
+
+
+void project(float x, float y, float z, float rx, float ry, float rz, Face *faces) {
+    // Calculate the field of view in radians
+    float fov = 90.0f * M_PI / 180.0f;
+    // Calculate the angle step size for both horizontal and vertical directions
+    float angle_step = fov / SW;
+    // Calculate the vertical angle step size based on the aspect ratio
+    float aspect_ratio = (float)SH / (float)SW;
+    float v_angle_step = angle_step * aspect_ratio;
+    // Calculate the initial horizontal and vertical angles
+    float h_angle = -(fov / 2.0f);
+    float v_angle = -(fov / 2.0f) * aspect_ratio;
+    
+    for (int j = 0; j < SW; j++) {
+    // Loop through every pixel in the screen
+        for (int i = 0; i < SH; i++) {
+            // Calculate the direction vector based on the current horizontal and vertical angles
+            float dir_x = cos(h_angle) * cos(v_angle);
+            float dir_y = sin(v_angle);
+            float dir_z = sin(h_angle) * cos(v_angle);
+            // Normalize the direction vector
+            float length = sqrt(dir_x * dir_x + dir_y * dir_y + dir_z * dir_z);
+            dir_x /= length;
+            dir_y /= length;
+            dir_z /= length;
+            // Call the raycast function for the current pixel and direction
+            Face* found = raycast(
+              x, y, z,
+              dir_x, dir_y, dir_z,
+              // 0, 0, 1,
+              // 0, 0.5, 0,
+              faces, 1);
+
+              // printf("faycast(%f, %f, %f, %f, %f, %f)", x, y, z,
+              // dir_x, dir_y, dir_z);
+
+            if (found == NULL) {} else {
+            drawPixel( i,j, 200, 100, 100);
+
+            }
+
+
+            // Increment the horizontal angle by the angle step size
+            h_angle += angle_step;
+        }
+        // Increment the vertical angle by the angle step size
+        v_angle += v_angle_step;
+        // Reset the horizontal angle to the initial value
+        h_angle = -(fov / 2.0f);
+    }
+}
+
+
 int myt;
 void display() { 
   int x, y, t;
@@ -460,9 +623,21 @@ void display() {
     movePlayer();
     // floors();
     draw3D();
+    // drawRcast();
 
-    myt++;
-    testTextures((myt / 20) % numText);
+    float x = P.x;
+    float y = P.y;
+    float z = P.z;
+
+    float rx = M_PI*0.5;
+    float ry = M_PI*0.5;
+    float rz = M_PI*0.5;
+
+
+    project(x, y, z, rx, ry, rz, &face );
+
+    // myt++;
+    // testTextures((myt / 20) % numText);
 
     T.fr2 = T.fr1;
 
@@ -505,7 +680,7 @@ void init() {
   }
 
   // init character
-  P.x = 70; P.y = -110; P.z=20; P.a = 0; P.l = 0;
+  P.x = 100; P.y = 110; P.z=20; P.a = 0; P.l = 0;
 
   // define textures
  Textures[ 0].name = T_00; Textures[ 0].h = T_00_HEIGHT; Textures[ 0].w = T_00_WIDTH;
