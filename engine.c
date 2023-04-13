@@ -117,8 +117,8 @@ Face faces[] = {
     100, 200,   0,
     1 // color
   }, {
-    0,   250,  30,
     0,   250,   0,
+    0,   250,  30,
     100, 250,   0,
     2 // color
   },{
@@ -523,7 +523,10 @@ Point normalize(Point a) {
     result.z = a.z / mag;
     return result;
 }
-Face* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, Face *faces, int num_faces) {
+
+Face* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, Face *faces, int num_faces,
+int* u_ret, int* v_ret
+) {
     float min_distance = INFINITY;
     Face* closest_face = NULL;
     for (int i = 0; i < num_faces; i++) {
@@ -571,13 +574,21 @@ Face* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, 
         }
         min_distance = t;
         closest_face = &faces[i];
+
+        // calculate u, v values
+        *u_ret = (int) (u * 50);
+        *v_ret = (int) (v * 50);
+
+        // printf("text:.(u=%f; v=%f)\n", u, v);
     }
     return closest_face;
 }
 
 void project(float x, float y, float z, float rotation_z, float rotation_x, Face *faces) {
+    int u, v;
+
     // Calculate the field of view in radians
-    float fov = 90.0f * M_PI / 180.0f;
+    float fov = 60.0f * M_PI / 180.0f;
     // Calculate the angle step size for both horizontal and vertical directions
     float angle_step = fov / SW;
     // Calculate the vertical angle step size based on the aspect ratio
@@ -615,10 +626,23 @@ void project(float x, float y, float z, float rotation_z, float rotation_x, Face
             new_dir_z /= length;
 
             // Call the raycast function for the current pixel and direction
-            Face* found = raycast(x, y, z, new_dir_x, new_dir_y, new_dir_z, faces, 3);
+            Face* found = raycast(
+              x, y, z,
+              new_dir_x, new_dir_y, new_dir_z, 
+              faces, 3,
+              &u, &v
+            );
             if (found != 0) { 
-              if (found->c == 1) { drawPixel(i, j, 50, 200, 100); }
-              else {drawPixel(i, j, 250, 200, 50);}
+              int wt = 3;
+
+              int pixel = (int) (Textures[wt].h - ((int) v % Textures[wt].h)-1)
+                  * 3 * Textures[wt].w
+                  + ((int) u % Textures[wt].w) * 3;
+
+              int r = Textures[wt].name[pixel + 0]; if (r < 0) { r = 0; }
+              int g = Textures[wt].name[pixel + 1]; if (g < 0) { g = 0; }
+              int b = Textures[wt].name[pixel + 2]; if (b < 0) { b = 0; }
+              drawPixel(i, j, r, g, b);
             }
 
             // Increment the horizontal angle by the angle step size
