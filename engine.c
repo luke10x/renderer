@@ -106,16 +106,28 @@ typedef struct {
   float x1, y1, z1; // Coordinates of first vertex
   float x2, y2, z2; // Coordinates of second vertex
   float x3, y3, z3; // Coordinates of third vertex
+  int c;
 } Face;
 //  x,  y,  z
-Face face = {
 
-  0,  200,   30,
-  0,  200,    0,
-
-  100, 200,   0
-};
-
+Face faces[] = {
+  {
+    0,   200,  30,
+    0,   200,   0,
+    100, 200,   0,
+    1 // color
+  }, {
+    0,   250,  30,
+    0,   250,   0,
+    100, 250,   0,
+    2 // color
+  },{
+    200, 0,   30,
+    200, 0,    0,
+    200, 100,  0,
+    2 // color
+  }
+}; 
 
 void load()
 {
@@ -603,8 +615,11 @@ void project(float x, float y, float z, float rotation_z, float rotation_x, Face
             new_dir_z /= length;
 
             // Call the raycast function for the current pixel and direction
-            Face* found = raycast(x, y, z, new_dir_x, new_dir_y, new_dir_z, faces, 1);
-            if (found != 0) { drawPixel(i, j, 200, 200, 100); }
+            Face* found = raycast(x, y, z, new_dir_x, new_dir_y, new_dir_z, faces, 3);
+            if (found != 0) { 
+              if (found->c == 1) { drawPixel(i, j, 50, 200, 100); }
+              else {drawPixel(i, j, 250, 200, 50);}
+            }
 
             // Increment the horizontal angle by the angle step size
             h_angle += angle_step;
@@ -640,7 +655,7 @@ float rx = 0;
 float rotation_angle = P.a * M_PI / 180.0;
 float head_lift = P.l * M_PI / 180.0;
 
-    project(x, y, z, rotation_angle, head_lift, &face );
+    project(x, y, z, rotation_angle, head_lift, &faces );
 
     // myt++;
     // testTextures((myt / 20) % numText);
