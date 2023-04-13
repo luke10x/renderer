@@ -511,7 +511,6 @@ Point normalize(Point a) {
     result.z = a.z / mag;
     return result;
 }
-
 Face* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, Face *faces, int num_faces) {
     float min_distance = INFINITY;
     Face* closest_face = NULL;
@@ -555,10 +554,11 @@ Face* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, 
             continue;
         }
         float t = (e2x * qx + e2y * qy + e2z * qz) * inv_det;
-        if (t < min_distance) {
-            min_distance = t;
-            closest_face = &faces[i];
+        if (t < 0.0f || t > min_distance) {
+            continue;
         }
+        min_distance = t;
+        closest_face = &faces[i];
     }
     return closest_face;
 }
@@ -584,9 +584,9 @@ void project(float x, float y, float z, float rx, float ry, float rz, Face *face
       for (int j = 0; j < SH; j++) {
 
             // Calculate the direction vector based on the current horizontal and vertical angles
-            float dir_y = -1 * cos(h_angle) * cos(v_angle);
-            float dir_x = -1 * sin(v_angle);
-            float dir_z = -1 * sin(h_angle) * cos(v_angle);
+            float dir_y = cos(h_angle) * cos(v_angle);
+            float dir_x = sin(v_angle);
+            float dir_z = sin(h_angle) * cos(v_angle);
 
             // Normalize the direction vector
             float length = sqrt(dir_x * dir_x + dir_y * dir_y + dir_z * dir_z);
