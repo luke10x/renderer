@@ -129,28 +129,35 @@ Face faces[] = {
     2 , 1, 1// color
   },
   
-  {
+  { //slant wall back
      50,   150,  70,
-
     -10,   150,  70,
-
      60,   150,   0,
-
-
-
-
-
-
-
-
-    2 , -1, -1// color
-  },{
+     0 , -1, -1// color
+  },{ ///front
      0,    150,   0,
     60,   150,    0,
     -10,   150,  70,
-    2 , 1, 1
+    0 , 1, 1
+  },
+
+  {
+    // water
+    512, 0, 0,
+    0, 0,   0,
+    0, 512, 0,
+    6, 1, 1
+  },
+  {
+    // water2
+    512, 0, 0,
+    512, 512,   0,
+    0, 512, 0,
+    6, 1, 1
   }
+
 }; 
+#define NUM_FACES 7
 
 void load()
 {
@@ -599,8 +606,8 @@ int* u_ret, int* v_ret
         closest_face = &faces[i];
 
         // calculate u, v values
-        *u_ret = (int) (u * 50);
-        *v_ret = (int) (v * 50);
+        *u_ret = (int) (u * 64);
+        *v_ret = (int) (v * 64);
 
         // printf("text:.(u=%f; v=%f)\n", u, v);
     }
@@ -652,27 +659,28 @@ void project(float x, float y, float z, float rotation_z, float rotation_x, Face
             Face* found = raycast(
               x, y, z,
               new_dir_x, new_dir_y, new_dir_z, 
-              faces, 5,
+              faces, NUM_FACES,
               &u, &v
             );
             if (found != 0) { 
-              int wt = 0;
+              // int wt = 0;
+              int wt = found->c;
 
               // v *= found->vs;
               int pixel;
               if (found->us == 1) {
-
-            pixel = (int) (Textures[wt].h - ((int) v % Textures[wt].h)-1)
+                pixel = (int) (Textures[wt].h - ((int) v % Textures[wt].h)-1)
                   * 3 * Textures[wt].w
                   + 
-                    (int) (Textures[wt].w - ((int) u % Textures[wt].w)-1)
-                   * 3;
+                  ((int) u % Textures[wt].w)
+                  * 3;
               } else {
-
-               pixel = (int) (int) v % Textures[wt].h
+                pixel = 
+                  (int) v % Textures[wt].h
                   * 3 * Textures[wt].w
-                  + ((int) u % Textures[wt].w) * 3;
-
+                  + 
+                  (int) (Textures[wt].w - ((int) u % Textures[wt].w)-1)
+                  * 3;
               }
 
               int r = Textures[wt].name[pixel + 0]; if (r < 0) { r = 0; }
