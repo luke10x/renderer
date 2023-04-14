@@ -1,5 +1,8 @@
 #define GL_SILENCE_DEPRECATION
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include <math.h>
 #include <stdio.h>
 #ifdef __APPLE__
@@ -121,7 +124,7 @@ Face faces[] = {
     0,   250,   0,
     0,   250,  30,
     100, 250,   0,
-    2 , 1 // color, u-scale, v-sclae
+    2 , 1, 1 // color, u-scale, v-sclae
   },{
     200, 0,   30,
     200, 0,    0,
@@ -133,12 +136,12 @@ Face faces[] = {
      50,   150,  70,
     -10,   150,  70,
      60,   150,   0,
-     0 , -1, -1// color
+     0 , -1, -3// color
   },{ ///front
      0,    150,   0,
     60,   150,    0,
     -10,   150,  70,
-    0 , 1, 1
+    0 , 1, 3
   },
 
   {
@@ -146,18 +149,91 @@ Face faces[] = {
     512, 0, 0,
     0, 0,   0,
     0, 512, 0,
-    6, 1, 1
+    6, 16, 16
   },
   {
     // water2
     512, 0, 0,
     512, 512,   0,
     0, 512, 0,
-    6, 1, 1
+    6, -16, -16
+  },
+
+  {
+    // island grass
+    480, 20, 10,
+    20, 20,   10,
+    20, 480, 10,
+    1, 46, 46
+  },
+  {
+    // island grass
+    480, 20, 10,
+    480, 480,   10,
+    20, 480, 10,
+    1, -46, -46
   }
 
+,
+   {
+    // island bank south
+     480, 20,  0,
+      20, 20,  0,
+     480, 20, 10,
+        0, 46, 1
+  },
+  {
+    // island bank south
+     20,  20,  10,
+     480, 20,  10,
+     20 , 20,   0,
+    0, -46, -1
+  }
+  ,
+     {
+    // island bank west
+     20, 480,  0,
+     20,  20,  0,
+     20, 480, 10,
+        0, 46, 1
+  },
+  {
+    // island bank west
+     20, 20,    10,
+     20, 480,   10,
+     20, 20 ,    0,
+    0,   -46,     -1
+  },
+     {
+    // island bank north
+     480, 480,  0,
+      20, 480,  0,
+     480, 480, 10,
+        0, 46, 1
+  },
+  {
+    // island bank north
+     20,  480,  10,
+     480, 480,  10,
+     20 , 480,   0,
+    0, -46, -1
+  }
+  ,     {
+    // island bank west
+     480, 480,  0,
+     480,  20,  0,
+     480, 480, 10,
+        0, 46, 1
+  },
+  {
+    // island bank west
+     480, 20,    10,
+     480, 480,   10,
+     480, 20 ,    0,
+    0,   -46,     -1
+  },
 }; 
-#define NUM_FACES 7
+#define NUM_FACES 17
 
 void load()
 {
@@ -239,227 +315,6 @@ void movePlayer() {
   printf("X=%d Y=%d Z=%d a=%d l=%d \n", P.x, P.y, P.z, P.a, P.l);
 }
 
-void clipBehindPlayer(
-  int* x1, int* y1, int* z1, int x2, int y2, int z2
-) {
-  float da = *y1;
-  float db = y2;
-  float d = da -db; if (d == 0) { d = 1; }
-  float s = da / (da - db);
-
-  *x1 = *x1 + s * (x2 - (*x1));
-  *y1 = *y1 + s * (y2 - (*y1)); if (*y1 == 0) { *y1 = 1; }
-  *z1 = *z1 + s * (z2 - (*z1)); 
-}
-void drawWall(int x1, int x2, int b1, int b2, int t1, int t2, int s, int w, int frontBack) {
-  int x, y;
-
-  // wall texture
-  int wt = W[w].wt  ;
-
-  // Horizontal wall texture starting and step value
-  float ht = 0, ht_step = (float)Textures[wt].w * W[w].u
-                        / (float)(x2 - x1);
-
-  // hold difference in distance 
-  int dyb = b2 - b1; // y distance of bottom line
-  int dyt = t2-t1;   // y distance of top line
-  int dx  = x2 - x1; // x distance
-  if (dx == 0) { dx = 1; } 
-  int xs = x1;        // hold inital x1 starting position
-
-  // Clip X
-  if (x1 <  0) { ht -= ht_step * x1; x1 = 0; }
-  if (x2 <  0) { x2 = 0; }
-  if (x1 > SW) { x1 = SW; }
-  if (x2 > SW) { x2 = SW; }
-
-  // draw x verticle lines
-  for (x = x1; x < x2; x++) {
-    // the Y start and end point
-    int y1 = dyb * (x - xs + 0.5) / dx + b1;
-    int y2 = dyt * (x - xs + 0.5) / dx + t1;
-
-    // Vertical wall texture starting and step value
-    float vt = 0, vt_step = (float)Textures[wt].h  * W[w].v
-                          / (float)(y2 - y1);
-
-    // Clip Y
-    if (y1 <  0) { vt -= vt_step * y1; y1 = 0; }
-    if (y2 <  0) { y2 = 0; }
-    if (y1 > SH) { y1 = SH; }
-    if (y2 > SH) { y2 = SH; }
-
-    
-    // draw front facing walls
-    if (frontBack == 0) {
-      if (S[s].surface ==  1) { S[s].surf[x] = y1; } // bottom surface save top row
-      if (S[s].surface ==  2) { S[s].surf[x] = y2; } // top surface save top row
-      for (y = y1; y < y2; y++) { 
-
-        int pixel = (int) (Textures[wt].h - ((int) vt % Textures[wt].h)-1)
-            * 3 * Textures[wt].w
-            + ((int) ht % Textures[wt].w) * 3;
-
-        int r = Textures[wt].name[pixel + 0] - W[w].shade / 1.5; if (r < 0) { r = 0; }
-        int g = Textures[wt].name[pixel + 1] - W[w].shade / 3; if (g < 0) { g = 0; }
-        int b = Textures[wt].name[pixel + 2] - W[w].shade / 3; if (b < 0) { b = 0; }
-        drawPixel(x, y, r, g, b);
-
-        vt += vt_step;
-      }
-      ht += ht_step;
-    }
-
-    // draw back wall and surface
-    if (frontBack == 1) {
-
-      int xo = SW / 2; // x offset
-      int yo = SH / 2; // y offset
-      float fov = 200.0;
-      int x2 = x - xo;
-      int wo; // wall offset
-      float tile = S[s].ss * 70;
-
-      if (S[s].surface ==  1) { y2 = S[s].surf[x]; wo = S[s].z1; } // bottom surface
-      if (S[s].surface ==  2) {y1 = S[s].surf[x]; wo = S[s].z2; }  // top surface
-  
-      float lookUpDown = P.l * 6.2;         if (lookUpDown > SH) { lookUpDown = SH;  }
-      float moveUpDown = (P.z - wo) / yo; if (moveUpDown == 0) {  moveUpDown = 0.0001; }
-      int ys=y1 - yo, ye = y2 - yo;
-      
-      // if (moveUpDown < 0) { ys = -lookUpDown; ye = yo + lookUpDown; }
-  for (y = ys; y < ye; y++) { 
-      float z = y + lookUpDown; if (z == 0) { z = 0.0001; }
-
-      float fx =   x2   / z * moveUpDown * tile;                        // world floor
-      float fy =   fov / z * moveUpDown * tile;  
- 
-      float rx = fx * M.sin[P.a] - fy * M.cos[P.a]  + (P.y/60.0 * tile);
-      float ry = fx * M.cos[P.a] + fy * M.sin[P.a]  - (P.x/60.0 * tile);
-
-      if (rx < 0) { rx = -rx + 1; }
-      if (ry < 0) { rx = -ry + 1; }
-      // if (rx <= 0 || ry <= 0 || rx >= 5 || ry <= 5) { continue; }
-
-      int st = S[s].st;
-              int pixel = (int) (Textures[wt].h - ((int) vt % Textures[wt].h)-1)
-            * 3 * Textures[wt].w
-            + ((int) ht % Textures[wt].w) * 3;
-
-      int r = Textures[wt].name[pixel + 0]; 
-      int g = Textures[wt].name[pixel + 1];
-      int b = Textures[wt].name[pixel + 2];
-      drawPixel(x2 + xo, y + yo, r, g, b);
-  }
-  ////
-
-      // if (S[s].surface ==  1) { y2 = S[s].surf[x]; }
-      // if (S[s].surface ==  2) {y1 = S[s].surf[x]; }
-      // for (y = y1; y < y2; y++) { drawPixel(x, y, 255, 0, 0); }
-
-    }
-
-  }
-}
-
-int dist (int x1, int y1, int x2, int y2) {
-  int distance = sqrt (
-    (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
-  );
-  return distance;
-}
-
-void draw3D() {
-  int x, s, w, frontBack, cycles;
-  int wx[4], wy[4], wz[4];
-  float CS = M.cos[P.a], SN = M.sin[P.a];
-
-  // order sectors by distance
-  for (s = 0; s < numSect - 1; s++) {
-    for (w = 0; w < numSect - s - 1; w++) {
-      if (S[w].d < S[w+1].d) {
-        sectors st = S[w];
-        S[w] = S[w+1];
-        S[w+1] = st;
-      }
-    }
-  }
-
-  // Draw sectors
-  for (s = 0; s < numSect; s++) {
-    S[s].d = 0;          // Clear distance
-
-    if      (P.z < S[s].z1) { S[s].surface = 1; cycles=2; for(x=0; x<SW; x++) { S[s].surf[x]=SH; } } // bottom surface
-    else if (P.z > S[s].z2) { S[s].surface = 2; cycles=2; for(x=0; x<SW; x++) { S[s].surf[x]= 0; }} // top    surface
-    else                    { S[s].surface = 0; cycles=1; } // no     surface
-
-    for (frontBack = 0; frontBack < cycles; frontBack++) {
-      for (w = S[s].ws; w < S[s].we; w++) {
-
-        // offset bottom 2 points by player
-        // int x1 = 40 - P.x, y1 =  10 - P.y;
-        // int x2 = 40 - P.x, y2 = 190 - P.y;
-        int x1 = W[w].x1 - P.x,
-            y1 = W[w].y1 - P.y;
-        int x2 = W[w].x2 - P.x, 
-            y2 = W[w].y2 - P.y;
-
-        // swap for surface
-        if (frontBack == 1) {
-          int swp = x1; x1 = x2; x2 = swp;
-              swp = y1; y1 = y2; y2 = swp;
-        }
-
-        // World X position
-        wx[0] = x1 * CS - y1 * SN;
-        wx[1] = x2 * CS - y2 * SN;
-        wx[2] = wx[0]; // top line has the same x
-        wx[3] = wx[1];
-
-        // World Y position (depth)
-        wy[0] = y1 * CS + x1 * SN;
-        wy[1] = y2 * CS + x2 * SN;
-        wy[2] = wy[0]; // top line has the same y
-        wy[3] = wy[1];
-
-        // Store this wall distance
-        S[s].d += dist(0, 0, (wx[0] + wx[1]) / 2, (wy[0] + wy[1]) / 2); 
-
-        // World Z position (height)
-        wz[0] = S[s].z1 - P.z /* next for looks */ + ((P.l * wy[0]) / 32.0);
-        wz[1] = S[s].z1 - P.z /* next for looks */ + ((P.l * wy[1]) / 32.0);
-        wz[2] = S[s].z2 - P.z /* next for looks */ + ((P.l * wy[0]) / 32.0);
-        wz[3] = S[s].z2 - P.z /* next for looks */ + ((P.l * wy[1]) / 32.0);
-
-        // don't draw if behind the player
-        if (wy[0] < 1 && wy[1] < 1) { continue; }
-        // point 1 behind the player, clip
-        if (wy[0] < 1) {
-          clipBehindPlayer(&wx[0], &wy[0], &wz[0], wx[1], wy[1], wz[1]); // bottom line
-          clipBehindPlayer(&wx[2], &wy[2], &wz[2], wx[3], wy[3], wz[3]); // top line
-        }
-        // point 2 behind player, clip
-        if (wy[1] < 1) {
-          clipBehindPlayer(&wx[1], &wy[1], &wz[1], wx[0], wy[0], wz[0]); // bottom line
-          clipBehindPlayer(&wx[3], &wy[3], &wz[3], wx[2], wy[2], wz[2]); // top line
-        }
-
-
-        // projected screen x, screen y position
-        wx[0] = wx[0] * 200 / wy[0] + SW2; wy[0] = wz[0] * 200 / wy[0] + SH2;
-        wx[1] = wx[1] * 200 / wy[1] + SW2; wy[1] = wz[1] * 200 / wy[1] + SH2;
-        wx[2] = wx[2] * 200 / wy[2] + SW2; wy[2] = wz[2] * 200 / wy[2] + SH2;
-        wx[1] = wx[3] * 200 / wy[3] + SW2; wy[3] = wz[3] * 200 / wy[3] + SH2;
-
-        drawWall(wx[0], wx[1], wy[0], wy[1], wy[2], wy[3], s, w, frontBack);
-      }
-      S[s].d /= (S[s].we - S[s].ws); // find average sector distance
-      // S[s].surface *= -1;            // flip to negative to draw surface
-    }
-  }
-}
-
 void testTextures(int t) {
   int x, y;
   for (y = 0; y < Textures[t].h; y++) {
@@ -474,88 +329,11 @@ void testTextures(int t) {
   }
 }
 
-void floors() {
-  int x, y;
-  int xo = SW / 2; // x offset
-  int yo = SH / 2; // y offset
-  float fov = 200.0;
-  float lookUpDown = P.l * 4; if (lookUpDown > SH) { lookUpDown = SH;  }
-  float moveUpDown = P.z / 16.0; if (moveUpDown == 0) {  moveUpDown = 0.0001; }
-
-  int ys=-yo, ye=-lookUpDown;
-  if (moveUpDown < 0) { ys = -lookUpDown; ye = yo + lookUpDown; }
-
-  for (y = ys; y < ye; y++) {
-    for (x = -xo; x < xo; x++) {
-      float z = y + lookUpDown; if (z == 0) { z = 0.0001; }
-
-      float fx =   x   / z * moveUpDown;                        // world floor
-      float fy =   fov / z * moveUpDown;
- 
-      float rx = fx * M.sin[P.a] - fy * M.cos[P.a]  + (P.y/30.0);
-      float ry = fx * M.cos[P.a] + fy * M.sin[P.a]  - (P.x/30.0);
-
-      if (rx < 0) { rx = -rx + 1; }
-      if (ry < 0) { rx = -ry + 1; }
-      if (rx <= 0 || ry <= 0 || rx >= 5 || ry <= 5) { continue; }
-
-
-      if ((int) rx % 2 == (int) ry % 2) {
-        drawPixel(x + xo, y + yo, 200, 50, 50); 
-      } else { 
-        drawPixel(x + xo, y + yo, 50, 200, 50);
-
-      }
-    }
-  }
-}
-
-
 #define EPSILON 0.000001
 
-typedef struct {
-    float x, y, z;
-} Point;
-
-// typedef struct {
-//     Point v1, v2, v3;
-// } Face;
-
-float dot_product(Point a, Point b) {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-Point cross_product(Point a, Point b) {
-    Point result;
-    result.x = a.y * b.z - a.z * b.y;
-    result.y = a.z * b.x - a.x * b.z;
-    result.z = a.x * b.y - a.y * b.x;
-    return result;
-}
-
-Point subtract(Point a, Point b) {
-    Point result;
-    result.x = a.x - b.x;
-    result.y = a.y - b.y;
-    result.z = a.z - b.z;
-    return result;
-}
-
-float magnitude(Point a) {
-    return sqrtf(a.x * a.x + a.y * a.y + a.z * a.z);
-}
-
-Point normalize(Point a) {
-    Point result;
-    float mag = magnitude(a);
-    result.x = a.x / mag;
-    result.y = a.y / mag;
-    result.z = a.z / mag;
-    return result;
-}
-
 Face* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, Face *faces, int num_faces,
-int* u_ret, int* v_ret
+// int* u_ret, int* v_ret
+unsigned char* r, unsigned char* g, unsigned char* b
 ) {
     float min_distance = INFINITY;
     Face* closest_face = NULL;
@@ -605,10 +383,33 @@ int* u_ret, int* v_ret
         min_distance = t;
         closest_face = &faces[i];
 
-        // calculate u, v values
-        *u_ret = (int) (u * 64);
-        *v_ret = (int) (v * 64);
+        int wt = closest_face->c;
 
+        float us = closest_face->us; if (us < 0) { us *= -1; }
+        float vs = closest_face->vs; if (vs < 0) { vs *= -1; }
+
+        u *= Textures[wt].h * us;
+        v *= Textures[wt].w * vs;
+
+        int pixel;
+        if (closest_face->us > 0) {
+          pixel = (int) (Textures[wt].h - ((int) v % Textures[wt].h)-1)
+            * 3 * Textures[wt].w
+            + 
+            ((int) u % Textures[wt].w)
+            * 3;
+        } else {
+          pixel = 
+            (int) v % Textures[wt].h
+            * 3 * Textures[wt].w
+            + 
+            (int) (Textures[wt].w - ((int) u % Textures[wt].w)-1)
+            * 3;
+        }
+
+        *r = Textures[wt].name[pixel + 0]; if (r < 0) { r = 0; }
+        *g = Textures[wt].name[pixel + 1]; if (g < 0) { g = 0; }
+        *b = Textures[wt].name[pixel + 2]; if (b < 0) { b = 0; }
         // printf("text:.(u=%f; v=%f)\n", u, v);
     }
     return closest_face;
@@ -616,6 +417,7 @@ int* u_ret, int* v_ret
 
 void project(float x, float y, float z, float rotation_z, float rotation_x, Face *faces) {
     int u, v;
+    u_int8_t r, g, b;
 
     // Calculate the field of view in radians
     float fov = 60.0f * M_PI / 180.0f;
@@ -660,32 +462,10 @@ void project(float x, float y, float z, float rotation_z, float rotation_x, Face
               x, y, z,
               new_dir_x, new_dir_y, new_dir_z, 
               faces, NUM_FACES,
-              &u, &v
+              &r, &g, &b
             );
             if (found != 0) { 
               // int wt = 0;
-              int wt = found->c;
-
-              // v *= found->vs;
-              int pixel;
-              if (found->us == 1) {
-                pixel = (int) (Textures[wt].h - ((int) v % Textures[wt].h)-1)
-                  * 3 * Textures[wt].w
-                  + 
-                  ((int) u % Textures[wt].w)
-                  * 3;
-              } else {
-                pixel = 
-                  (int) v % Textures[wt].h
-                  * 3 * Textures[wt].w
-                  + 
-                  (int) (Textures[wt].w - ((int) u % Textures[wt].w)-1)
-                  * 3;
-              }
-
-              int r = Textures[wt].name[pixel + 0]; if (r < 0) { r = 0; }
-              int g = Textures[wt].name[pixel + 1]; if (g < 0) { g = 0; }
-              int b = Textures[wt].name[pixel + 2]; if (b < 0) { b = 0; }
               drawPixel(i, j, r, g, b);
             }
 
@@ -707,9 +487,6 @@ void display() {
 
     clearBackground();
     movePlayer();
-    // floors();
-    draw3D();
-    // drawRcast();
 
     float x = P.x;
     float y = P.y;
@@ -719,9 +496,9 @@ void display() {
     float ry = M_PI*0.5;
     float rz = M_PI*0.5;
 
-float rx = 0;
-float rotation_angle = P.a * M_PI / 180.0;
-float head_lift = P.l * M_PI / 180.0;
+    float rx = 0;
+    float rotation_angle = P.a * M_PI / 180.0;
+    float head_lift = P.l * M_PI / 180.0;
 
     project(x, y, z, rotation_angle, head_lift, &faces );
 
