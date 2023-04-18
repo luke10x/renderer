@@ -1,1 +1,7 @@
 *.exe
+*.blend1
+*.ppm
+*.obj
+*.mtl
+.DS_Store
+*.xcf

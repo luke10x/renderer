@@ -10,4 +10,8 @@ Grid2D.exe:
 clean:
 	rm -f *.out
 	rm -f *.exe
-.PHONY=clean
+
+run: clean engine.exe
+	engine.exe
+
+.PHONY=clean run
