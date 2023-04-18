@@ -12,6 +12,6 @@ clean:
 	rm -f *.exe
 
 run: clean engine.exe
-	engine.exe
+	./engine.exe
 
 .PHONY=clean run

@@ -111,10 +111,10 @@ typedef struct {
   float x3, y3, z3; // Coordinates of third vertex
   int c;
   float us, vs;
-} Face;
+} Triangle;
 //  x,  y,  z
 
-Face faces[] = {
+Triangle triangles[] = {
   {
     0,   200,  30,
     0,   200,   0,
@@ -331,22 +331,22 @@ void testTextures(int t) {
 
 #define EPSILON 0.000001
 
-Face* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, Face *faces, int num_faces,
+Triangle* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, Triangle *triangles, int num_triangles,
 // int* u_ret, int* v_ret
 unsigned char* r, unsigned char* g, unsigned char* b
 ) {
     float min_distance = INFINITY;
-    Face* closest_face = NULL;
-    for (int i = 0; i < num_faces; i++) {
-        float x1 = faces[i].x1;
-        float y1 = faces[i].y1;
-        float z1 = faces[i].z1;
-        float x2 = faces[i].x2;
-        float y2 = faces[i].y2;
-        float z2 = faces[i].z2;
-        float x3 = faces[i].x3;
-        float y3 = faces[i].y3;
-        float z3 = faces[i].z3;
+    Triangle* closest_face = NULL;
+    for (int i = 0; i < num_triangles; i++) {
+        float x1 = triangles[i].x1;
+        float y1 = triangles[i].y1;
+        float z1 = triangles[i].z1;
+        float x2 = triangles[i].x2;
+        float y2 = triangles[i].y2;
+        float z2 = triangles[i].z2;
+        float x3 = triangles[i].x3;
+        float y3 = triangles[i].y3;
+        float z3 = triangles[i].z3;
 
         float e1x = x2 - x1;
         float e1y = y2 - y1;
@@ -381,7 +381,7 @@ unsigned char* r, unsigned char* g, unsigned char* b
             continue;
         }
         min_distance = t;
-        closest_face = &faces[i];
+        closest_face = &triangles[i];
 
         int wt = closest_face->c;
 
@@ -415,7 +415,7 @@ unsigned char* r, unsigned char* g, unsigned char* b
     return closest_face;
 }
 
-void project(float x, float y, float z, float rotation_z, float rotation_x, Face *faces) {
+void project(float x, float y, float z, float rotation_z, float rotation_x, Triangle *triangles) {
     int u, v;
     u_int8_t r, g, b;
 
@@ -458,10 +458,10 @@ void project(float x, float y, float z, float rotation_z, float rotation_x, Face
             new_dir_z /= length;
 
             // Call the raycast function for the current pixel and direction
-            Face* found = raycast(
+            Triangle* found = raycast(
               x, y, z,
               new_dir_x, new_dir_y, new_dir_z, 
-              faces, NUM_FACES,
+              triangles, NUM_FACES,
               &r, &g, &b
             );
             if (found != 0) { 
@@ -500,7 +500,7 @@ void display() {
     float rotation_angle = P.a * M_PI / 180.0;
     float head_lift = P.l * M_PI / 180.0;
 
-    project(x, y, z, rotation_angle, head_lift, &faces );
+    project(x, y, z, rotation_angle, head_lift, &triangles );
 
     // myt++;
     // testTextures((myt / 20) % numText);
