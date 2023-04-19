@@ -11,3 +11,12 @@ From png to ppm:
 
   
 # Prepare OBJ files and textures
+
+While exporting to OBJ use the following settings:
+
+    Forward Axis:          Y
+    Up Axis:               Z
+    Geometry:
+        UV Coordinates:    Checked
+        Triangulated Mesh: Checked
+    Materials:             Export

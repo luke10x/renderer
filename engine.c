@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <math.h>
 #include <stdio.h>
 #ifdef __APPLE__
@@ -10,6 +11,8 @@
 #else
 #include <GL/glut.h>
 #endif
+
+// #define NULL 0
 
 #define res        1               // 0=160x120 1=360x240 4=640=480
 #define SW         160*res         // screen width
@@ -105,135 +108,116 @@ typedef struct
  const unsigned char *name;           //texture name
 } TexureMaps; TexureMaps Textures[64]; //increase for more textures
 
+
+typedef struct {
+    float u;
+    float v;
+} TexCoord;
+
+# define MAX_TEXCOORDS 5000
+TexCoord texCoords[MAX_TEXCOORDS];
+int numTexCoords = 0;
+
 typedef struct {
   float x1, y1, z1; // Coordinates of first vertex
   float x2, y2, z2; // Coordinates of second vertex
   float x3, y3, z3; // Coordinates of third vertex
-  int c;
-  float us, vs;
+  float u1, v1; // Texture coordinates of first vertex
+  float u2, v2; // Texture coordinates of second vertex
+  float u3, v3; // Texture coordinates of third vertex
+  int c; // Index of material color
+  float us, vs; // deperecated
 } Triangle;
-//  x,  y,  z
 
-Triangle triangles[] = {
-  {
-    0,   200,  30,
-    0,   200,   0,
-    100, 200,   0,
-    1, 1, 1 // color, u-scale, v-scale
-  }, {
-    0,   250,   0,
-    0,   250,  30,
-    100, 250,   0,
-    2 , 1, 1 // color, u-scale, v-sclae
-  },{
-    200, 0,   30,
-    200, 0,    0,
-    200, 100,  0,
-    2 , 1, 1// color
-  },
-  
-  { //slant wall back
-     50,   150,  70,
-    -10,   150,  70,
-     60,   150,   0,
-     0 , -1, -3// color
-  },{ ///front
-     0,    150,   0,
-    60,   150,    0,
-    -10,   150,  70,
-    0 , 1, 3
-  },
+Triangle* triangles = NULL;
 
-  {
-    // water
-    512, 0, 0,
-    0, 0,   0,
-    0, 512, 0,
-    6, 16, 16
-  },
-  {
-    // water2
-    512, 0, 0,
-    512, 512,   0,
-    0, 512, 0,
-    6, -16, -16
-  },
 
-  {
-    // island grass
-    480, 20, 10,
-    20, 20,   10,
-    20, 480, 10,
-    1, 46, 46
-  },
-  {
-    // island grass
-    480, 20, 10,
-    480, 480,   10,
-    20, 480, 10,
-    1, -46, -46
-  }
+int NUM_FACES = 0;
 
-,
-   {
-    // island bank south
-     480, 20,  0,
-      20, 20,  0,
-     480, 20, 10,
-        0, 46, 1
-  },
-  {
-    // island bank south
-     20,  20,  10,
-     480, 20,  10,
-     20 , 20,   0,
-    0, -46, -1
-  }
-  ,
-     {
-    // island bank west
-     20, 480,  0,
-     20,  20,  0,
-     20, 480, 10,
-        0, 46, 1
-  },
-  {
-    // island bank west
-     20, 20,    10,
-     20, 480,   10,
-     20, 20 ,    0,
-    0,   -46,     -1
-  },
-     {
-    // island bank north
-     480, 480,  0,
-      20, 480,  0,
-     480, 480, 10,
-        0, 46, 1
-  },
-  {
-    // island bank north
-     20,  480,  10,
-     480, 480,  10,
-     20 , 480,   0,
-    0, -46, -1
-  }
-  ,     {
-    // island bank west
-     480, 480,  0,
-     480,  20,  0,
-     480, 480, 10,
-        0, 46, 1
-  },
-  {
-    // island bank west
-     480, 20,    10,
-     480, 480,   10,
-     480, 20 ,    0,
-    0,   -46,     -1
-  },
-}; 
-#define NUM_FACES 17
+int load_obj_file(const char* filename, Triangle** triangles) {
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        printf("Error: Failed to open file %s\n", filename);
+        return 0;
+    }
+
+    int vCount = 0;
+    int vtCount = 0;
+    int tCount = 0;
+    float *vertices = NULL;
+    float *vts = NULL;
+    int *triIndices = NULL;
+
+    while (!feof(file)) {
+        char line[128];
+        if (!fgets(line, 128, file)) break;
+
+        if (line[0] == 'v' && line[1] == ' ') {
+            vCount++;
+            vertices = realloc(vertices, vCount * 3 * sizeof(float));
+            sscanf(line, "v %f %f %f", &vertices[(vCount - 1) * 3],
+                   &vertices[(vCount - 1) * 3 + 1],
+                   &vertices[(vCount - 1) * 3 + 2]);
+        } 
+        
+
+        if (line[0] == 'v' && line[1] == 't') {
+            vtCount++;
+            vts = realloc(vts, vtCount * 2 * sizeof(float));
+            sscanf(line, "vt %f %f", &vts[(vtCount - 1) * 2],
+                   &vts[(vtCount - 1) * 2 + 1]);
+        }
+
+        else if (line[0] == 'f' && line[1] == ' ') {
+            tCount++;
+            triIndices = realloc(triIndices, tCount * 3 * sizeof(int));
+            sscanf(line, "f %d/%*d/%*d %d/%*d/%*d %d/%*d/%*d",
+                   &triIndices[(tCount - 1) * 3],
+                   &triIndices[(tCount - 1) * 3 + 1],
+                   &triIndices[(tCount - 1) * 3 + 2]);
+        }
+    }
+
+    fclose(file);
+
+    // Create the array of Triangle structs
+    *triangles = malloc(tCount * sizeof(Triangle));
+
+    // Assign the vertex coordinates to the triangles by their number
+    for (int i = 0; i < tCount; i++) {
+        int v1 = triIndices[i * 3] - 1;
+        int v2 = triIndices[i * 3 + 1] - 1;
+        int v3 = triIndices[i * 3 + 2] - 1;
+
+        (*triangles)[i].x1 = vertices[v1 * 3];
+        (*triangles)[i].y1 = vertices[v1 * 3 + 1];
+        (*triangles)[i].z1 = vertices[v1 * 3 + 2];
+
+        (*triangles)[i].x2 = vertices[v2 * 3];
+        (*triangles)[i].y2 = vertices[v2 * 3 + 1];
+        (*triangles)[i].z2 = vertices[v2 * 3 + 2];
+
+        (*triangles)[i].x3 = vertices[v3 * 3];
+        (*triangles)[i].y3 = vertices[v3 * 3 + 1];
+        (*triangles)[i].z3 = vertices[v3 * 3 + 2];
+
+        int vt1 = triIndices[i * 2] - 1;
+        int vt2 = triIndices[i * 2 + 1] - 1;
+
+        (*triangles)[i].u1 = vts[vt1 * 2];
+        (*triangles)[i].v1 = vts[vt1 * 2 + 1];
+
+        (*triangles)[i].u2 = vts[vt2 * 2];
+        (*triangles)[i].v2 = vts[vt2 * 2 + 1];
+    }
+
+    // Free the temporary arrays
+    free(vertices);
+    free(triIndices);
+
+    // Return the number of triangles
+    return tCount;
+}
 
 void load()
 {
@@ -312,7 +296,7 @@ void movePlayer() {
   if (K.w == 1 && K.m == 1) { P.z+=4; printf("move up\n"); }
   if (K.s == 1 && K.m == 1) { P.z-=4; printf("move down\n"); }
 
-  printf("X=%d Y=%d Z=%d a=%d l=%d \n", P.x, P.y, P.z, P.a, P.l);
+  // printf("X=%d Y=%d Z=%d a=%d l=%d \n", P.x, P.y, P.z, P.a, P.l);
 }
 
 void testTextures(int t) {
@@ -331,7 +315,7 @@ void testTextures(int t) {
 
 #define EPSILON 0.000001
 
-Triangle* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, Triangle *triangles, int num_triangles,
+Triangle* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, Triangle* triangles, int num_triangles,
 // int* u_ret, int* v_ret
 unsigned char* r, unsigned char* g, unsigned char* b
 ) {
@@ -500,10 +484,10 @@ void display() {
     float rotation_angle = P.a * M_PI / 180.0;
     float head_lift = P.l * M_PI / 180.0;
 
-    project(x, y, z, rotation_angle, head_lift, &triangles );
+    project(x, y, z, rotation_angle, head_lift, triangles );
 
-    // myt++;
-    // testTextures((myt / 20) % numText);
+    myt++;
+    testTextures((myt / 20) % numText);
 
     T.fr2 = T.fr1;
 
@@ -546,7 +530,7 @@ void init() {
   }
 
   // init character
-  P.x = 100; P.y = 110; P.z=20; P.a = 0; P.l = 0;
+  P.x = 0; P.y = 0; P.z=20; P.a = 0; P.l = 0;
 
  // define textures
  Textures[ 0].name = T_00; Textures[ 0].h = T_00_HEIGHT; Textures[ 0].w = T_00_WIDTH;
@@ -569,6 +553,14 @@ void init() {
  Textures[17].name=T_17; Textures[17].h=T_17_HEIGHT; Textures[17].w=T_17_WIDTH;
  Textures[18].name=T_18; Textures[18].h=T_18_HEIGHT; Textures[18].w=T_18_WIDTH;
  Textures[19].name=T_19; Textures[19].h=T_19_HEIGHT; Textures[19].w=T_19_WIDTH;
+
+  NUM_FACES = load_obj_file("assets/export/cube.obj", &triangles);
+  printf("NUM faces = %d\n", NUM_FACES);
+  // if (num_triangles > 0) {
+  //     // Process the triangles array
+  //     // ...
+  //     free(triangles);
+  // }
 
 }
 
