@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #else
@@ -129,10 +130,11 @@ typedef struct {
   float us, vs; // deperecated
 } Triangle;
 
-Triangle* triangles = NULL;
+Triangle* triangles = 0;
 
 
 int NUM_FACES = 0;
+char **materialNames = 0;
 
 int load_obj_file(const char* filename, Triangle** triangles) {
     FILE *file = fopen(filename, "r");
@@ -144,9 +146,14 @@ int load_obj_file(const char* filename, Triangle** triangles) {
     int vCount = 0;
     int vtCount = 0;
     int tCount = 0;
-    float *vertices = NULL;
-    float *vts = NULL;
-    int *triIndices = NULL;
+    int mCount = 0;
+
+    float *vertices = 0;
+    float *vts = 0;
+    int *triIndices = 0;
+    int *triMats = 0; // array index is face index, value texture index
+    // materialNames is global ok...
+materialNames = malloc(300 * sizeof(char*));
 
     while (!feof(file)) {
         char line[128];
@@ -175,6 +182,18 @@ int load_obj_file(const char* filename, Triangle** triangles) {
                    &triIndices[(tCount - 1) * 3],
                    &triIndices[(tCount - 1) * 3 + 1],
                    &triIndices[(tCount - 1) * 3 + 2]);
+
+            // Additionally it links to last seen material
+            triMats = realloc(triMats, tCount * sizeof(int));
+            triMats[tCount-1] = mCount -1 ;
+        }
+
+        else if (line[0] == 'u' && line[1] == 's' && line[2] == 'e') {
+            mCount++;
+            materialNames = realloc(materialNames, mCount * sizeof(char *));
+            int nameLength = strlen(line) - 7;
+            materialNames[mCount - 1] = strdup(line + 7); // Skip "usemtl " prefix
+            materialNames[mCount - 1][nameLength-1] = '\0';
         }
     }
 
@@ -203,17 +222,36 @@ int load_obj_file(const char* filename, Triangle** triangles) {
 
         int vt1 = triIndices[i * 2] - 1;
         int vt2 = triIndices[i * 2 + 1] - 1;
+        int vt3 = triIndices[i * 2 + 2] - 1;
 
         (*triangles)[i].u1 = vts[vt1 * 2];
         (*triangles)[i].v1 = vts[vt1 * 2 + 1];
 
         (*triangles)[i].u2 = vts[vt2 * 2];
         (*triangles)[i].v2 = vts[vt2 * 2 + 1];
+
+        (*triangles)[i].u3 = vts[vt3 * 2];
+        (*triangles)[i].v3 = vts[vt3 * 2 + 1];
     }
 
     // Free the temporary arrays
     free(vertices);
+    free(vts);
     free(triIndices);
+
+
+
+  for (int i = 0; i < tCount; i++) {
+      printf("Triangle %d:\n", i + 1);
+      printf("  Vertex 1: (%f, %f, %f)\n", (*triangles)[i].x1, (*triangles)[i].y1, (*triangles)[i].z1);
+      printf("  Vertex 2: (%f, %f, %f)\n", (*triangles)[i].x2, (*triangles)[i].y2, (*triangles)[i].z2);
+      printf("  Vertex 3: (%f, %f, %f)\n", (*triangles)[i].x3, (*triangles)[i].y3, (*triangles)[i].z3);
+      printf("  Texture Coordinates:\n");
+      printf("    Vertex 1: (%f, %f)\n",   (*triangles)[i].u1, (*triangles)[i].v1);
+      printf("    Vertex 2: (%f, %f)\n",   (*triangles)[i].u2, (*triangles)[i].v2);
+      printf("    Vertex 3: (%f, %f)\n",   (*triangles)[i].u3, (*triangles)[i].v3);
+      printf("  Material: %d (%s). \n", triMats[i], materialNames[triMats[i]]);
+  }
 
     // Return the number of triangles
     return tCount;
@@ -222,7 +260,7 @@ int load_obj_file(const char* filename, Triangle** triangles) {
 void load()
 {
  FILE *fp = fopen("level.h","r");
- if(fp == NULL){ printf("Error opening level.h"); return;}
+ if(fp == 0){ printf("Error opening level.h"); return;}
  int s,w;
 
  fscanf(fp,"%i",&numSect);   //number of sectors 
@@ -320,7 +358,7 @@ Triangle* raycast(float x, float y, float z, float dir_x, float dir_y, float dir
 unsigned char* r, unsigned char* g, unsigned char* b
 ) {
     float min_distance = INFINITY;
-    Triangle* closest_face = NULL;
+    Triangle* closest_face = 0;
     for (int i = 0; i < num_triangles; i++) {
         float x1 = triangles[i].x1;
         float y1 = triangles[i].y1;
