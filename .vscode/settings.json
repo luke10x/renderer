@@ -1,0 +1,9 @@
+{
+  "workbench.colorCustomizations": {
+    "statusBar.background": "#cf3190"
+  },
+  "files.associations": {
+    "*.js": "javascript",
+    "__locale": "c"
+  }
+}
