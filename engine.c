@@ -1,64 +1,27 @@
 #define GL_SILENCE_DEPRECATION
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #else
 #include <GL/glut.h>
 #endif
 
-#include "calc.c"
-#include "objects.c"
+#include "display.h"
+#include "dataload.h"
 
-#define res        1               // 0=160x120 1=360x240 4=640=480
-#define SW         160*res         // screen width
-#define SH         120*res         // screen height
+#include "debug.c"
+#include "dataload.c"
+#include "cast.c"
+
 #define SW2        (SW/2)          // half of screen width
 #define SH2        (SH/2)          // half of screen height
-#define pixelScale 4/res           // OpenGL pixel scale
+#define pixelScale 4               // OpenGL pixel scale
 #define GLSW       (SW*pixelScale) // OpenGL window width
 #define GLSH       (SH*pixelScale) // OpenGL window height
-
-
-//textures
-#include "textures/T_NUMBERS.h"
-#include "textures/T_VIEW2D.h"
-#include "textures/T_00.h"
-#include "textures/T_01.h"
-#include "textures/T_02.h"
-#include "textures/T_03.h"
-#include "textures/T_04.h"
-#include "textures/T_05.h"
-#include "textures/T_06.h"
-#include "textures/T_07.h"
-#include "textures/T_08.h"
-#include "textures/T_09.h"
-#include "textures/T_10.h"
-#include "textures/T_11.h"
-#include "textures/T_12.h"
-#include "textures/T_13.h"
-#include "textures/T_14.h"
-#include "textures/T_15.h"
-#include "textures/T_16.h"
-#include "textures/T_17.h"
-#include "textures/T_18.h"
-#include "textures/T_19.h"
-int numText=19;                          //number of textures
-int numSect= 0;                          //number of sectors
-int numWall= 0;                          //number of walls
-
-
 
 typedef struct {
   int fr1, fr2;  // frame1 frame2, to create constant frame rate
 } time;
-
 time T;
 
 typedef struct {
@@ -66,7 +29,6 @@ typedef struct {
   int sl, sr;     // strafe left, right
   int m;          // move up, down, look up, down
 } keys;
-
 keys K;
 
 typedef struct {
@@ -83,40 +45,13 @@ typedef struct {
 player P;
 
 t_face* faces = NULL;
-
-typedef struct 
-{
- int w,h;                             //texture width/height
- const unsigned char *name;           //texture name
-} TexureMaps; TexureMaps Textures[64]; //increase for more textures
-
-
-typedef struct {
-    float u;
-    float v;
-} TexCoord;
-
-# define MAX_TEXCOORDS 5000
-TexCoord texCoords[MAX_TEXCOORDS];
-int numTexCoords = 0;
-
-
 int NUM_FACES = 0;
 
-void drawPixel(int x, int y, int r, int g, int b) {
+void pixel_put(int x, int y, int r, int g, int b) {
   glColor3ub(r, g, b);
   glBegin(GL_POINTS);
   glVertex2i(x * pixelScale + 2, y * pixelScale + 2);
   glEnd();
-}
-
-void clearBackground() {
-  int x, y;
-  for (y = 0; y < SH; y++) {
-    for (x = 0; x < SW; x++) {
-      drawPixel(x, y, 0, 61, 30 );
-    }
-  }
 }
 
 void movePlayer() {
@@ -151,161 +86,6 @@ void movePlayer() {
   // printf("X=%d Y=%d Z=%d a=%d l=%d \n", P.x, P.y, P.z, P.a, P.l);
 }
 
-void testTextures(int t) {
-  int x, y;
-  for (y = 0; y < Textures[t].h; y++) {
-    for (x = 0; x < Textures[t].w; x++) {
-      int pixel = (Textures[t].h - y -1) * 3 * Textures[t].w + x * 3;
-
-      int r = Textures[t].name[pixel + 0];
-      int g = Textures[t].name[pixel + 1]; 
-      int b = Textures[t].name[pixel + 2];
-      drawPixel(x, y, r, g, b);
-    }
-  }
-}
-
-#define EPSILON 0.000001
-
-t_face* raycast(float x, float y, float z, float dir_x, float dir_y, float dir_z, t_face* faces, int num_triangles,
-// int* u_ret, int* v_ret
-unsigned char* r, unsigned char* g, unsigned char* b
-) {
-    float min_distance = INFINITY;
-    t_face* closest_face = NULL;
-    for (int i = 0; i < num_triangles; i++) {
-        float x1 = faces[i].v1.x;
-        float y1 = faces[i].v1.y;
-        float z1 = faces[i].v1.z;
-        float x2 = faces[i].v2.x;
-        float y2 = faces[i].v2.y;
-        float z2 = faces[i].v2.z;
-        float x3 = faces[i].v3.x;
-        float y3 = faces[i].v3.y;
-        float z3 = faces[i].v3.z;
-
-        float e1x = x2 - x1;
-        float e1y = y2 - y1;
-        float e1z = z2 - z1;
-        float e2x = x3 - x1;
-        float e2y = y3 - y1;
-        float e2z = z3 - z1;
-        float px = dir_y * e2z - dir_z * e2y;
-        float py = dir_z * e2x - dir_x * e2z;
-        float pz = dir_x * e2y - dir_y * e2x;
-        float det = e1x * px + e1y * py + e1z * pz;
-        if (det > -EPSILON && det < EPSILON) {
-            continue;
-        }
-        float inv_det = 1.0f / det;
-        float tx = x - x1;
-        float ty = y - y1;
-        float tz = z - z1;
-        float u = (tx * px + ty * py + tz * pz) * inv_det;
-        if (u < 0.0f || u > 1.0f) {
-            continue;
-        }
-        float qx = ty * e1z - tz * e1y;
-        float qy = tz * e1x - tx * e1z;
-        float qz = tx * e1y - ty * e1x;
-        float v = (dir_x * qx + dir_y * qy + dir_z * qz) * inv_det;
-        if (v < 0.0f || u + v > 1.0f) {
-            continue;
-        }
-        float t = (e2x * qx + e2y * qy + e2z * qz) * inv_det;
-        if (t < 0.0f || t > min_distance) {
-            continue;
-        }
-        min_distance = t;
-        closest_face = &faces[i];
-
-        int wt = 1;
-
-
-
-        float w = 1.0f - u - v;
-        float u1 = closest_face->vt1.u;
-        float v1 = closest_face->vt1.v;
-        float u2 = closest_face->vt2.u;
-        float v2 = closest_face->vt2.v;
-        float u3 = closest_face->vt3.u;
-        float v3 = closest_face->vt3.v;
-        float u_tex = u1 * w + u2 * u + u3 * v;
-        float v_tex = v1 * w + v2 * u + v3 * v;
-        int pixel = (int)(v_tex * Textures[wt].h) * Textures[wt].w + (int)(u_tex * Textures[wt].w);
-        // int pixel = (int)(v * Textures[wt].h) * Textures[wt].w + (int)(u * Textures[wt].w);
-        *r = Textures[wt].name[pixel * 3];
-        *g = Textures[wt].name[pixel * 3 + 1];
-        *b = Textures[wt].name[pixel * 3 + 2];
-    }
-    return closest_face;
-}
-
-void project(float x, float y, float z, float rotation_z, float rotation_x, t_face* faces,
-int num_faces) {
-
-    int u, v;
-    u_int8_t r, g, b;
-
-    // Calculate the field of view in radians
-    float fov = 60.0f * M_PI / 180.0f;
-    // Calculate the angle step size for both horizontal and vertical directions
-    float angle_step = fov / SW;
-    // Calculate the vertical angle step size based on the aspect ratio
-    float aspect_ratio = (float)SH / (float)SW;
-    float v_angle_step = angle_step * aspect_ratio;
-    // Calculate the initial horizontal and vertical angles
-    float h_angle = -(fov / 2.0f);
-    float v_angle = -(fov / 2.0f) * aspect_ratio;
-
-    // Loop through every pixel in the screen
-    for (int i = 0; i < SW; i++) {
-        for (int j = 0; j < SH; j++) {
-
-            // Calculate the direction vector based on the current horizontal and vertical angles and rotation
-            float dir_y = cos(h_angle) * cos(v_angle);
-            float dir_x = sin(v_angle);
-            float dir_z = sin(h_angle) * cos(v_angle);
-
-            // Rotate the direction vector around the x-axis
-            float cos_rot_x = cos(-rotation_x);
-            float sin_rot_x = sin(-rotation_x);
-            float new_dir_y = dir_y * cos_rot_x - dir_z * sin_rot_x;
-            float new_dir_z = dir_y * sin_rot_x + dir_z * cos_rot_x;
-
-            // Rotate the direction vector around the z-axis
-            float cos_rot_z = cos(-rotation_z);
-            float sin_rot_z = sin(-rotation_z);
-            float new_dir_x = dir_x * cos_rot_z - new_dir_y * sin_rot_z;
-            new_dir_y = dir_x * sin_rot_z + new_dir_y * cos_rot_z;
-
-            // Normalize the direction vector
-            float length = sqrt(new_dir_x * new_dir_x + new_dir_y * new_dir_y + new_dir_z * new_dir_z);
-            new_dir_x /= length;
-            new_dir_y /= length;
-            new_dir_z /= length;
-
-            // Call the raycast function for the current pixel and direction
-            t_face* found = raycast(
-              x, y, z,
-              new_dir_x, new_dir_y, new_dir_z, 
-              faces, NUM_FACES,
-              &r, &g, &b
-            );
-            if (found != 0) { 
-              drawPixel(i, j, r, g, b);
-            }
-
-            // Increment the horizontal angle by the angle step size
-            h_angle += angle_step;
-        }
-        // Increment the vertical angle by the angle step size
-        v_angle += v_angle_step;
-        // Reset the horizontal angle to the initial value
-        h_angle = -(fov / 2.0f);
-    }
-}
-
 
 int myt;
 void display() { 
@@ -319,18 +99,13 @@ void display() {
     float y = P.y;
     float z = P.z;
 
-    // float rx = M_PI*0.5;
-    float ry = M_PI*0.5;
-    float rz = M_PI*0.5;
-
-    float rx = 0;
     float rotation_angle = P.a * M_PI / 180.0;
     float head_lift = P.l * M_PI / 180.0;
 
     project(x, y, z, rotation_angle, head_lift, faces, NUM_FACES);
 
-    myt++;
-    testTextures((myt / 20) % numText);
+    // myt++;
+    // testTextures(faces, (myt / 20) % NUM_FACES);
 
     T.fr2 = T.fr1;
 
@@ -377,30 +152,8 @@ void init() {
   // init character
   P.x = 0; P.y = 0; P.z=20; P.a = 0; P.l = 0;
 
- // define textures
- Textures[ 0].name = T_00; Textures[ 0].h = T_00_HEIGHT; Textures[ 0].w = T_00_WIDTH;
- Textures[ 1].name=T_01; Textures[ 1].h=T_01_HEIGHT; Textures[ 1].w=T_01_WIDTH;
- Textures[ 2].name=T_02; Textures[ 2].h=T_02_HEIGHT; Textures[ 2].w=T_02_WIDTH;
- Textures[ 3].name=T_03; Textures[ 3].h=T_03_HEIGHT; Textures[ 3].w=T_03_WIDTH;
- Textures[ 4].name=T_04; Textures[ 4].h=T_04_HEIGHT; Textures[ 4].w=T_04_WIDTH;
- Textures[ 5].name=T_05; Textures[ 5].h=T_05_HEIGHT; Textures[ 5].w=T_05_WIDTH;
- Textures[ 6].name=T_06; Textures[ 6].h=T_06_HEIGHT; Textures[ 6].w=T_06_WIDTH;
- Textures[ 7].name=T_07; Textures[ 7].h=T_07_HEIGHT; Textures[ 7].w=T_07_WIDTH;
- Textures[ 8].name=T_08; Textures[ 8].h=T_08_HEIGHT; Textures[ 8].w=T_08_WIDTH;
- Textures[ 9].name=T_09; Textures[ 9].h=T_09_HEIGHT; Textures[ 9].w=T_09_WIDTH;
- Textures[10].name=T_10; Textures[10].h=T_10_HEIGHT; Textures[10].w=T_10_WIDTH;
- Textures[11].name=T_11; Textures[11].h=T_11_HEIGHT; Textures[11].w=T_11_WIDTH;
- Textures[12].name=T_12; Textures[12].h=T_12_HEIGHT; Textures[12].w=T_12_WIDTH;
- Textures[13].name=T_13; Textures[13].h=T_13_HEIGHT; Textures[13].w=T_13_WIDTH;
- Textures[14].name=T_14; Textures[14].h=T_14_HEIGHT; Textures[14].w=T_14_WIDTH;
- Textures[15].name=T_15; Textures[15].h=T_15_HEIGHT; Textures[15].w=T_15_WIDTH;
- Textures[16].name=T_16; Textures[16].h=T_16_HEIGHT; Textures[16].w=T_16_WIDTH;
- Textures[17].name=T_17; Textures[17].h=T_17_HEIGHT; Textures[17].w=T_17_WIDTH;
- Textures[18].name=T_18; Textures[18].h=T_18_HEIGHT; Textures[18].w=T_18_WIDTH;
- Textures[19].name=T_19; Textures[19].h=T_19_HEIGHT; Textures[19].w=T_19_WIDTH;
-
+  // init faces
   NUM_FACES = faces_load_from_file("assets/export/cube.obj", &faces);
-
 }
 
 int main(int argc, char* argv[]) {
