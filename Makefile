@@ -9,6 +9,7 @@ main.exe:
 	-framework IOKit -framework Cocoa -framework Carbon \
 	src/main.c -o main.exe
 
+
 clean:
 	rm -f *.out
 	rm -f *.exe
