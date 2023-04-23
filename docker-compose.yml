@@ -1,0 +1,15 @@
+version: "3"
+services:
+  wasm:
+    build:
+      context: wasm
+      dockerfile: Dockerfile
+    working_dir: /mnt/wasm
+    volumes:
+      - ./wasm:/mnt/wasm:rw
+      - ./src:/mnt/src
+    entrypoint: "bash -c"
+    command:
+      - |
+        tail -f /dev/null
+        /mnt/wasm/build-wasm.sh

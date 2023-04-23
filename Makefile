@@ -1,5 +1,5 @@
 engine.exe: # calc.o
-	gcc src/engine.c  -Lsrc -Isrc -framework OpenGL -framework GLUT -o engine.exe
+	gcc src/engine.c -Lsrc -Isrc -framework OpenGL -framework GLUT -o engine.exe
 
 main.exe:
 	clang \
@@ -10,7 +10,6 @@ main.exe:
 	-framework IOKit -framework Cocoa -framework Carbon \
 	src/main.c -o main.exe
 
-emcc main.c -o index.html -I /emsdk/upstream/emscripten/cache/sysroot/include/ -lglfw -s USE_WEBGL2=1 -s USE_GLFW=3 -s WASM=1
 clean:
 	rm -f *.out
 	rm -f *.exe

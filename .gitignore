@@ -5,3 +5,4 @@
 *.mtl
 .DS_Store
 *.xcf
+/wasm/build/

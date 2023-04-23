@@ -6,6 +6,7 @@
 // Emscripten
 #include <GLFW/glfw3.h>
 #include <GL/gl.h> // Include OpenGL header
+#include <GL/glut.h>
 
 #include <emscripten/emscripten.h>
 #else
