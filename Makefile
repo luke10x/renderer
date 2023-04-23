@@ -1,20 +1,22 @@
-engine.exe: # calc.o
-	gcc src/engine.c -Lsrc -Isrc -framework OpenGL -framework GLUT -o engine.exe
+#
+# Desktop application build
+#
 
-main.exe:
+main.app:
 	clang \
 	-DGL_SILENCE_DEPRECATION \
 	-I/opt/homebrew/Cellar/glfw/3.3.8/include \
 	-L/opt/homebrew/lib \
 	-lglfw -framework CoreVideo -framework OpenGL -framework GLUT \
 	-framework IOKit -framework Cocoa -framework Carbon \
-	src/main.c -o main.exe
+	src/main.c -o main.app
 
 clean:
 	rm -f *.out
 	rm -f *.exe
+	rm -f *.app
 
-run: clean engine.exe
-	./engine.exe
+run: clean main.app
+	./main.app
 
 .PHONY=clean run

@@ -6,6 +6,6 @@
     "*.js": "javascript",
     "__locale": "c",
     "dataload.h": "c",
-    "display.h": "c"
+    "*.h": "c",
   }
 }
