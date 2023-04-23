@@ -1,9 +1,19 @@
 #define GL_SILENCE_DEPRECATION
 
+
+#ifdef __EMSCRIPTEN__
+
+// Emscripten
+#include <GLFW/glfw3.h>
+#include <GL/gl.h> // Include OpenGL header
+
+#include <emscripten/emscripten.h>
+#else
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #else
 #include <GL/glut.h>
+#endif
 #endif
 
 #include "display.h"
@@ -13,8 +23,6 @@
 #include "dataload.c"
 #include "cast.c"
 
-#define SW2        (SW/2)          // half of screen width
-#define SH2        (SH/2)          // half of screen height
 #define pixelScale 4               // OpenGL pixel scale
 #define GLSW       (SW*pixelScale) // OpenGL window width
 #define GLSH       (SH*pixelScale) // OpenGL window height

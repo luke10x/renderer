@@ -4,6 +4,8 @@
   },
   "files.associations": {
     "*.js": "javascript",
-    "__locale": "c"
+    "__locale": "c",
+    "dataload.h": "c",
+    "display.h": "c"
   }
 }
