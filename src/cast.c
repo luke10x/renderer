@@ -2,14 +2,13 @@
 #include <stdlib.h>
 
 #include "dataload.h"
-#include "display.h"
 
 void pixel_put(int x, int y, int r, int g, int b);
 
-void clearBackground() {
+void sky_render(int sw, int sh) {
   int x, y;
-  for (y = 0; y < SH; y++) {
-    for (x = 0; x < SW; x++) {
+  for (y = 0; y < sh; y++) {
+    for (x = 0; x < sw; x++) {
       pixel_put(x, y, 0, 61, 30 );
     }
   }
@@ -129,7 +128,7 @@ unsigned char* r, unsigned char* g, unsigned char* b
     return closest_face;
 }
 
-void project(float x, float y, float z, float rotation_z, float rotation_x, t_face* faces, int num_faces) {
+void project(int sw, int sh, float x, float y, float z, float rotation_z, float rotation_x, t_face* faces, int num_faces) {
 
     int u, v;
     uint8_t r, g, b;
@@ -137,17 +136,17 @@ void project(float x, float y, float z, float rotation_z, float rotation_x, t_fa
     // Calculate the field of view in radians
     float fov = 60.0f * M_PI / 180.0f;
     // Calculate the angle step size for both horizontal and vertical directions
-    float angle_step = fov / SW;
+    float angle_step = fov / sw;
     // Calculate the vertical angle step size based on the aspect ratio
-    float aspect_ratio = (float)SH / (float)SW;
+    float aspect_ratio = (float)sh / (float)sw;
     float v_angle_step = angle_step * aspect_ratio;
     // Calculate the initial horizontal and vertical angles
     float h_angle = -(fov / 2.0f);
     float v_angle = -(fov / 2.0f) * aspect_ratio;
 
     // Loop through every pixel in the screen
-    for (int i = 0; i < SW; i++) {
-        for (int j = 0; j < SH; j++) {
+    for (int i = 0; i < sw; i++) {
+        for (int j = 0; j < sh; j++) {
 
             // Calculate the direction vector based on the current horizontal and vertical angles and rotation
             float dir_y = cos(h_angle) * cos(v_angle);

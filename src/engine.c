@@ -101,7 +101,7 @@ void display() {
   int x, y, t;
   if (T.fr1 - T.fr2 >= 50) { // Only draw 20 frames per second
 
-    clearBackground();
+    sky_render(SW, SH);
     movePlayer();
 
     float x = P.x;
@@ -111,7 +111,7 @@ void display() {
     float rotation_angle = P.a * M_PI / 180.0;
     float head_lift = P.l * M_PI / 180.0;
 
-    project(x, y, z, rotation_angle, head_lift, faces, NUM_FACES);
+    project(SW, SH, x, y, z, rotation_angle, head_lift, faces, NUM_FACES);
 
     // myt++;
     // testTextures(faces, (myt / 20) % NUM_FACES);
