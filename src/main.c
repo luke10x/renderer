@@ -69,25 +69,27 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
  * Initialize GL 
  */
 int init_gl() {
-  // const int width = 320,
-  //           height = 240;
 
   if (glfwInit() != GL_TRUE) {
       printf("glfwInit() failed\n");
       return GL_FALSE;
   }
 
-
-
   window = glfwCreateWindow( GLSW, GLSH, "Hello World", NULL, NULL );
   if (!window) {
     glfwTerminate();
     return GL_FALSE;
   }
-  glPointSize(PIXEL_SCALE);
 
   glfwMakeContextCurrent(window);
   glfwSetKeyCallback(window, key_callback);
+
+
+  glLoadIdentity();
+  glOrtho(0, GLSW, 0, GLSH, -1, 1);
+  glMatrixMode(GL_MODELVIEW);
+  glEnable(GL_TEXTURE_2D );
+  glPointSize(PIXEL_SCALE);
 
   return GL_TRUE;
 }
@@ -101,20 +103,9 @@ void pixel_put(int x, int y, int r, int g, int b) {
 }
  
 void do_frame() {
-
-  // Set color to red
-  unsigned char* data = malloc(sizeof(unsigned char)*100*100*3);
-  for (int y = 0; y < 100; ++y) {
-    for (int x = 0; x < 100; ++x) {
-      data[y * 100 * 3 + x * 3   ] = 0xff;
-      data[y * 100 * 3 + x * 3 +1] = 0x00;
-      data[y * 100 * 3 + x * 3 +2] = 0x00;
-    }
-  }
-  
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  glDrawPixels(100, 100, GL_RGB, GL_UNSIGNED_BYTE, data);
-  pixel_put(10, 10, 0xff, 0xff, 0x00);
+
+  pixel_put(32, 32, 0xff, 0xff, 0x00);
 
   // Swap front and back buffers
   glfwSwapBuffers(window);
