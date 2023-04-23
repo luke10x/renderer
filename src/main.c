@@ -5,15 +5,15 @@
 #ifdef __EMSCRIPTEN__
 
 // Emscripten
-#include <GL/glfw.h>
+#include <GLFW/glfw3.h>
+#include <GL/gl.h> // Include OpenGL header
+
 #include <emscripten/emscripten.h>
 #else
 #ifdef __APPLE__
 
 // NOT Emscripten && Apple
 
-#include <GLUT/glut.h>
-#include <GLFW/glfw3native.h>
 #include <GLFW/glfw3.h>
 
 #else
@@ -37,6 +37,7 @@ void shutdown_gl();
 GLFWwindow* window;
 
 int main() {
+  printf("Started\n");
   if (init_gl() == GL_TRUE) {
     // emscripten_set_main_loop(do_frame, 0, 1);
 #ifdef __EMSCRIPTEN__
@@ -47,6 +48,7 @@ int main() {
     while (!glfwWindowShouldClose(window)) do_frame();
 #endif
   }
+  printf("ended\n");
  
   shutdown_gl();
   return 0;
@@ -105,7 +107,7 @@ void pixel_put(int x, int y, int r, int g, int b) {
 void do_frame() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  pixel_put(32, 32, 0xff, 0xff, 0x00);
+  pixel_put(10, 10, 0xff, 0x00, 0xff);
 
   // Swap front and back buffers
   glfwSwapBuffers(window);
