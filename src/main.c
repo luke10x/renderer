@@ -12,8 +12,8 @@
 #include "dataload.c"
 #include "raycast.c"
 
-#define SW          128
-#define SH          96
+#define SW          64
+#define SH          64
 #define PIXEL_SCALE 4           // OpenGL pixel scale
 #define GLSW        (SW*PIXEL_SCALE) // OpenGL window width
 #define GLSH        (SH*PIXEL_SCALE) // OpenGL window height
@@ -87,10 +87,10 @@ void cam_move() {
 
   if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-      cam.z+=4; printf("move up\n");
+      cam.z+=8; printf("move up\n");
     }
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-      cam.z-=4; printf("move down\n");
+      cam.z-=8; printf("move down\n");
     }
   }
 }
@@ -180,6 +180,7 @@ void init_app_state() {
 
   // init faces
   NUM_FACES = faces_load_from_file("assets/export/cube.obj", &faces);
+  NUM_FACES = faces_load_from_file("assets/export/level-map.obj", &faces);
 }
 
 /**

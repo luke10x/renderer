@@ -20,6 +20,8 @@ While exporting to Wavefron (.obj) use the following settings:
         Triangulated Mesh: Checked
     Materials:             Export
 
+Also External Data -> Pack Resources operation has to be done!
+
 Make sure your material names are matching PPM file basenames.
 
 Files can be saved as PNG in the source. And can be later converted:

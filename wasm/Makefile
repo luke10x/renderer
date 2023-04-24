@@ -10,6 +10,8 @@ build:
 		-s USE_WEBGL2=1 -s USE_GLFW=3 -s WASM=1 \
 		-s LEGACY_GL_EMULATION=1 -s ALLOW_MEMORY_GROWTH=1 -s GL_UNSAFE_OPTS=0 \
 		--preload-file ../assets/export/cube.obj@assets/export/cube.obj	\
+		--preload-file ../assets/export/level-map.obj@assets/export/level-map.obj	\
+		--preload-file ../assets/ppm/04-12-wall.ppm@assets/ppm/04-12-wall.ppm \
 		--preload-file ../assets/ppm/09-01-water.ppm@assets/ppm/09-01-water.ppm \
 		--preload-file ../assets/ppm/15-03-box-with-board.ppm@assets/ppm/15-03-box-with-board.ppm \
 		--preload-file ../assets/ppm/17-03-grass.ppm@assets/ppm/17-03-grass.ppm \
