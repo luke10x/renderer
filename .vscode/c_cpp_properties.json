@@ -1,22 +1,23 @@
 {
     "configurations": [
-      {
-        "name": "Mac",
-        "includePath": [
-          "${workspaceFolder}/**",
-          "/opt/homebrew/Cellar/mesa/22.3.6_1/include",
-          "/opt/homebrew/Cellar/sdl2/2.26.2/include",
-          "/opt/homebrew/Cellar/glfw/3.3.8/include"
-        ],
-        "defines": [],
-        "macFrameworkPath": [
-          "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
-        ],
-        "compilerPath": "/usr/bin/clang",
-        "cStandard": "c11",
-        "cppStandard": "c++17",
-        "intelliSenseMode": "clang-x64"
-      }
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/opt/homebrew/Cellar/mesa/22.3.6_1/include",
+                "/opt/homebrew/Cellar/sdl2/2.26.2/include",
+                "/opt/homebrew/Cellar/glfw/3.3.8/include",
+                "/opt/homebrew/Cellar/glew/2.2.0_1/include"
+            ],
+            "defines": [],
+            "macFrameworkPath": [
+                "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-x64"
+        }
     ],
     "version": 4
-  }
+}
