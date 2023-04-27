@@ -5,8 +5,6 @@
 build:
 	mkdir -p ./build
 
-
-
 	emcc ../src/main.c -o ./build/main.html -I /emsdk/upstream/emscripten/cache/sysroot/include/ \
 		-lglfw -lGL \
 		-s USE_WEBGL2=1 -s USE_GLFW=3 -s WASM=1 \
@@ -33,8 +31,16 @@ build:
 		--preload-file ../assets/ppm/test.ppm@assets/ppm/test.ppm \
 		--preload-file ../assets/ppm/text.ppm@assets/ppm/text.ppm
 
-	emcc ../src/triangl.c -o ./build/triangl.html \
-		-s FULL_ES2=1 -s USE_GLFW=3 -O0 
+build/triangl.html:
+	mkdir -p ./build
+
+	emcc ../src/shader.c -c -o ./build/shader.o
+
+	emcc ../src/triangl.c ./build/shader.o -o ./build/triangl.html \
+		-s FULL_ES2=1 -s USE_GLFW=3 -O0 \
+		--preload-file ../src/shaders/default-100.vert@src/shaders/default-100.vert \
+		--preload-file ../src/shaders/default-100.frag@src/shaders/default-100.frag
+
 
 clean:
 	rm -fr build/

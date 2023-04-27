@@ -13,6 +13,7 @@
 #include <emscripten.h>
 #endif
 
+#include "shader.h"
 
 #ifdef __APPLE__
 // Vertex Shader source code
@@ -48,55 +49,7 @@ const char fragmentShaderSource[] =
 "} \n";
 #endif
 
-GLuint shaderProgram;
-
-GLuint loadShader(GLenum type, const char *source)
-{
-    // create shader
-    GLuint shader = glCreateShader(type);
-    if(shader == 0)
-    {
-        fprintf(stderr, "Error creating shader\n");
-        return 0;
-    }
-
-    // load the shader source to the shader object and compile it;
-    glShaderSource(shader, 1, &source, NULL);
-    //~ glShaderSource(shader, 1, &source, 0);
-    glCompileShader(shader);
-
-    // check if the shader compiled successfully
-    GLint compiled;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-    if (!compiled)
-    {
-        fprintf(stderr, "Shader compilation error\n");
-        glDeleteShader(shader);
-        return 0;
-    }
-    return shader;
-}
-
-GLuint buildProgram(GLuint vertexShader, GLuint fragmentShader, const char * vertexPositionName)
-{
-    // create a GL program and link it
-    GLuint po = glCreateProgram();
-    glAttachShader(po, vertexShader);
-    glAttachShader(po, fragmentShader);
-    glBindAttribLocation(po, 0, vertexPositionName);
-    glLinkProgram(po);
-
-    // check if the program linked successfully
-    GLint linked;
-    glGetProgramiv(po, GL_LINK_STATUS, &linked);
-    if(!linked)
-    {
-        fprintf(stderr, "Program link error\n");
-        glDeleteProgram(po);
-        return 0;
-    }
-    return po;
-}
+t_shader* shaderProgram;
 
 int main() {
   if (!glfwInit()) {
@@ -136,10 +89,12 @@ int main() {
   glfwGetFramebufferSize(window, &w, &h);
   glViewport(0, 0, w, h);
 
-  // load vertex and fragment shaders
-  GLuint vertexShader = loadShader(GL_VERTEX_SHADER, vertexShaderSource);
-  GLuint fragmentShader = loadShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
-  shaderProgram = buildProgram(vertexShader, fragmentShader, "vPosition");
+#ifdef __APPLE__
+  shaderProgram = shader_ctor("src/shaders/default-330-core.vert", "src/shaders/default-330-core.frag");
+#endif
+#ifdef __EMSCRIPTEN__
+  shaderProgram = shader_ctor("src/shaders/default-100.vert", "src/shaders/default-100.frag");
+#endif
 
 	// Vertices coordinates
 	GLfloat vertices[] =
@@ -213,7 +168,8 @@ int main() {
   // Clean the back buffer and assign the new color to it
   glClear(GL_COLOR_BUFFER_BIT);
   // Tell OpenGL which Shader Program we want to use
-  glUseProgram(shaderProgram);
+  shader_activate(shaderProgram);
+
   // Bind the VAO so OpenGL knows to use it
   glBindVertexArray(VAO);
   // Draw primitives, number of indices, datatype of indices, index of indices
