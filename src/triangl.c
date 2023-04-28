@@ -91,13 +91,15 @@ int main() {
 	vbo_t* VBO1 = vbo_ctor(vertices, sizeof(vertices));
   // Generates Element Buffer Object and links it to indices
 	ebo_t* EBO1 = ebo_ctor(indices, sizeof(indices));
-  
+
   // Links VBO to VAO
   vao_link_attrib(VAO1, VBO1, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0);
   vao_link_attrib(VAO1, VBO1, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float)));
   vao_unbind(VAO1);
   vbo_unbind(VBO1);
   ebo_unbind(EBO1);
+
+  GLuint uniID = glGetUniformLocation(shaderProgram->ID, "scale");
 
   // LOOP can start here //
 
@@ -107,8 +109,10 @@ int main() {
   glClear(GL_COLOR_BUFFER_BIT);
   // Tell OpenGL which Shader Program we want to use
   shader_activate(shaderProgram);
-  // Bind the VAO so OpenGL knows to use it
 
+  glUniform1f(uniID, 0.5f);
+
+  // Bind the VAO so OpenGL knows to use it
   vao_bind(VAO1);
 
   // Draw primitives, number of indices, datatype of indices, index of indices
