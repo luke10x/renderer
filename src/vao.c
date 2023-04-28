@@ -6,10 +6,10 @@ vao_t* vao_ctor() {
   return self;
 }
 
-void vao_link_vbo(vao_t* self, vbo_t* vbo, GLuint layout) {
+void vao_link_attrib(vao_t* self, vbo_t* vbo, GLuint layout, GLuint numComponents, GLenum type, GLsizeiptr stride, void* offset) {
   vbo_bind(vbo);
 
-  glVertexAttribPointer(layout, 3, GL_FLOAT, GL_FALSE, 0, (void*) 0);
+  glVertexAttribPointer(layout, numComponents, type, GL_FALSE, stride, offset);
   glEnableVertexAttribArray(layout);
   vbo_unbind(vbo);
 }

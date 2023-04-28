@@ -21,7 +21,7 @@ typedef struct {
 } vao_t;
 
 vao_t* vao_ctor();
-void vao_link_vbo(vao_t* self, vbo_t* vbo, GLuint layout);
+void vao_link_attrib(vao_t* self, vbo_t* vbo, GLuint layout, GLuint numComponents, GLenum type, GLsizeiptr stride, void* offset);
 void vao_bind  (vao_t* self);
 void vao_unbind(vao_t* self);
 void vao_delete(vao_t* self);

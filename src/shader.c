@@ -73,7 +73,7 @@ GLuint _loadShader(GLenum type, const char *source)
   glShaderSource(shader, 1, &source, NULL);
   //~ glShaderSource(shader, 1, &source, 0);
   glCompileShader(shader);
-
+  _print_compile_errors(shader, type);
   // check if the shader compiled successfully
   GLint compiled;
   glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
@@ -102,7 +102,8 @@ GLuint _buildProgram(
   GLint linked;
   glGetProgramiv(po, GL_LINK_STATUS, &linked);
   if(!linked) {
-    fprintf(stderr, "Program link error\n");
+    _print_compile_errors(po, 0);
+
     glDeleteProgram(po);
     return 0;
   }
@@ -117,12 +118,10 @@ shader_t* shader_ctor(const char* vertex_file, const char* fragment_file) {
   GLuint vertexShader   = _loadShader(GL_VERTEX_SHADER, vertex_source);
   GLuint fragmentShader = _loadShader(GL_FRAGMENT_SHADER, fragment_source);
 
-  _print_compile_errors(vertexShader, 2);
-  _print_compile_errors(fragmentShader, 1);
+
 
   shader_t* self = malloc(sizeof(shader_t));
   self->ID = _buildProgram(vertexShader, fragmentShader, "vPosition");
-  _print_compile_errors(self->ID, 0);
 
 
   return self;
