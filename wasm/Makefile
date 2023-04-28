@@ -35,8 +35,12 @@ build/triangl.html:
 	mkdir -p ./build
 
 	emcc ../src/shader.c -c -o ./build/shader.o
+	emcc ../src/ebo.c -c -o ./build/ebo.o
+	emcc ../src/vbo.c -c -o ./build/vbo.o
+	emcc ../src/vao.c -c -o ./build/vao.o
 
-	emcc ../src/triangl.c ./build/shader.o -o ./build/triangl.html \
+	emcc ../src/triangl.c \
+		./build/shader.o ./build/ebo.o ./build/vbo.o ./build/vao.o -o ./build/triangl.html \
 		-s FULL_ES2=1 -s USE_GLFW=3 -O0 \
 		--preload-file ../src/shaders/default-100.vert@src/shaders/default-100.vert \
 		--preload-file ../src/shaders/default-100.frag@src/shaders/default-100.frag

@@ -14,42 +14,12 @@
 #endif
 
 #include "shader.h"
+#include "vao.h"
+#include "vbo.h"
+#include "ebo.h"
 
-#ifdef __APPLE__
-// Vertex Shader source code
-const char* vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"void main()\n"
-"{\n"
-"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-"}\0";
-//Fragment Shader source code
-const char* fragmentShaderSource = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"void main()\n"
-"{\n"
-"   FragColor = vec4(0.8f, 0.3f, 0.02f, 1.0f);\n"
-"}\n\0";
-#endif
-#ifdef __EMSCRIPTEN__
-const char vertexShaderSource[] = 
-"attribute vec4 vPosition; \n"
-"void main() \n"
-"{ \n"
-"   gl_Position = vPosition; \n"
-"} \n";
 
-const char fragmentShaderSource[] = 
-"precision mediump float; \n"
-"void main() \n"
-"{ \n"
-"   gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0), \n"
-"                (0.0 , 1.0 , 0.0 , 1.0),\n"
-"                (0.0 , 0.0 , 0.1 , 1.0); \n"
-"} \n";
-#endif
-
-t_shader* shaderProgram;
+shader_t* shaderProgram;
 
 int main() {
   if (!glfwInit()) {
@@ -114,52 +84,20 @@ int main() {
 		3, 2, 4, // Lower right triangle
 		5, 4, 1 // Upper triangle
 	};
+	// Generates Vertex Array Object and binds it
+	vao_t* VAO1 = vao_ctor();
+  vao_bind(VAO1);
 
-  // Create reference containers for the Vartex Array Object 
-  // and the Vertex Buffer Object
-	GLuint VAO, VBO, EBO;
-
-	// Generate the VAO, VBO, and EBO with only 1 object each
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-
-	// Make the VAO the current Vertex Array Object by binding it
-	glBindVertexArray(VAO);
-
-	// Bind the VBO specifying it's a GL_ARRAY_BUFFER
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-  // Introduce the vertices into the VBO
-  glBufferData(
-    GL_ARRAY_BUFFER,
-    sizeof(float)*sizeof(vertices),
-    vertices,
-    GL_STATIC_DRAW
-  );
-
-	// Bind the EBO specifying it's a GL_ELEMENT_ARRAY_BUFFER
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	// Introduce the indices into the EBO
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-  // Configure the Vertex Attribute so that OpenGL knows how to read the VBO
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	// Enable the Vertex Attribute so that OpenGL knows to use it
-	glEnableVertexAttribArray(0);
-
-	// Bind both the VBO and VAO to 0 so that we don't accidentally modify the VAO and VBO we created
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-	// Bind the EBO to 0 so that we don't accidentally modify it
-	// MAKE SURE TO UNBIND IT AFTER UNBINDING THE VAO, as the EBO is linked in the VAO
-	// This does not apply to the VBO because the VBO is already linked to the VAO during glVertexAttribPointer
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-	// Bind the EBO to 0 so that we don't accidentally modify it
-	// MAKE SURE TO UNBIND IT AFTER UNBINDING THE VAO, as the EBO is linked in the VAO
-	// This does not apply to the VBO because the VBO is already linked to the VAO during glVertexAttribPointer
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  // Generates Vertex Buffer Object and links it to vertices
+	vbo_t* VBO1 = vbo_ctor(vertices, sizeof(vertices));
+  // Generates Element Buffer Object and links it to indices
+	ebo_t* EBO1 = ebo_ctor(indices, sizeof(indices));
+  
+  // Links VBO to VAO
+  vao_link_vbo(VAO1, VBO1, 0);
+  vao_unbind(VAO1);
+  vbo_unbind(VBO1);
+  ebo_unbind(EBO1);
 
   // LOOP can start here //
 
@@ -169,9 +107,10 @@ int main() {
   glClear(GL_COLOR_BUFFER_BIT);
   // Tell OpenGL which Shader Program we want to use
   shader_activate(shaderProgram);
-
   // Bind the VAO so OpenGL knows to use it
-  glBindVertexArray(VAO);
+
+  vao_bind(VAO1);
+
   // Draw primitives, number of indices, datatype of indices, index of indices
   glDrawElements(GL_TRIANGLES, 9, GL_UNSIGNED_INT, 0);
   // Swap the back buffer with the front buffer

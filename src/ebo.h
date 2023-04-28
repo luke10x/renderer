@@ -16,11 +16,9 @@
 
 typedef struct {
   GLuint ID;
-} shader_t;
+} ebo_t;
 
-shader_t* shader_ctor(const char* vertex_file, const char* fragment_file);
-
-void shader_activate(const shader_t* self);
-
-void shader_deactivate(const shader_t* self);
-
+ebo_t* ebo_ctor(GLuint* indices, GLsizeiptr size);
+void ebo_bind  (ebo_t* self);
+void ebo_unbind(ebo_t* self);
+void ebo_delete(ebo_t* self);

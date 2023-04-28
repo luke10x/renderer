@@ -16,9 +16,29 @@ shader.o:
 	clang src/shader.c -c -o tmp/shader.o \
 	-DGL_SILENCE_DEPRECATION \
 	-I/opt/homebrew/Cellar/glfw/3.3.8/include \
+	-I/opt/homebrew/Cellar/glew/2.2.0_1/include
+
+vao.o:
+	clang src/vao.c -c -o tmp/vao.o \
+	-DGL_SILENCE_DEPRECATION \
+	-I/opt/homebrew/Cellar/glfw/3.3.8/include \
 	-I/opt/homebrew/Cellar/glew/2.2.0_1/include 
 
-triangl.app: shader.o
+ebo.o:
+	clang src/ebo.c -c -o tmp/ebo.o \
+	-DGL_SILENCE_DEPRECATION \
+	-I/opt/homebrew/Cellar/glfw/3.3.8/include \
+	-I/opt/homebrew/Cellar/glew/2.2.0_1/include 
+	
+vbo.o:
+	clang src/vbo.c -c -o tmp/vbo.o \
+	-DGL_SILENCE_DEPRECATION \
+	-I/opt/homebrew/Cellar/glfw/3.3.8/include \
+	-I/opt/homebrew/Cellar/glew/2.2.0_1/include 
+
+
+
+triangl.app: shader.o ebo.o vbo.o vao.o
 	clang \
 	-DGL_SILENCE_DEPRECATION \
 	-I/opt/homebrew/Cellar/glfw/3.3.8/include \
@@ -26,7 +46,7 @@ triangl.app: shader.o
 	-L/opt/homebrew/lib \
 	-lglfw -lglew -framework CoreVideo -framework OpenGL -framework GLUT  \
 	-framework IOKit -framework Cocoa -framework Carbon \
-	src/triangl.c tmp/shader.o -o triangl.app
+	src/triangl.c tmp/shader.o tmp/vao.o tmp/ebo.o tmp/vbo.o -o triangl.app
 
 clean:
 	rm -f tmp/*.o

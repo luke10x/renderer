@@ -32,30 +32,31 @@ char* _get_file_contents(const char *filename) {
 }
 
 
-void _print_compile_errors(unsigned int shader, const char* type)
+void _print_compile_errors(unsigned int shader, int isProgram)
 {
 	// Stores status of compilation
 	GLint hasCompiled;
 	// Character array to store error message in
 	char infoLog[1024];
-	// if (type != "PROGRAM")
+	if (isProgram > 0)
 	{
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &hasCompiled);
 		if (hasCompiled == GL_FALSE)
 		{
 			glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-			fprintf(stderr, "SHADER_COMPILATION_ERROR for: %s\n %s\n", type, infoLog);
+			fprintf(stderr, "SHADER_COMPILATION_ERROR for: %d\n %s\n", isProgram, infoLog);
 		}
 	}
-	// else
-	// {
-	// 	glGetProgramiv(shader, GL_LINK_STATUS, &hasCompiled);
-	// 	if (hasCompiled == GL_FALSE)
-	// 	{
-	// 		glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-	// 		std::cout << "SHADER_LINKING_ERROR for:" << type << "\n" << infoLog << std::endl;
-	// 	}
-	// }
+	else
+  {
+    glGetProgramiv(shader, GL_LINK_STATUS, &hasCompiled);
+    if (hasCompiled == GL_FALSE)
+    {
+      glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+      			fprintf(stderr, "SHADER_LINKING_ERROR for: %d\n %s\n", isProgram, infoLog);
+
+    }
+  }
 }
 
 GLuint _loadShader(GLenum type, const char *source)
@@ -108,7 +109,7 @@ GLuint _buildProgram(
   return po;
 }
 
-t_shader* shader_ctor(const char* vertex_file, const char* fragment_file) {
+shader_t* shader_ctor(const char* vertex_file, const char* fragment_file) {
   char* vertex_source   = _get_file_contents(vertex_file);
   char* fragment_source = _get_file_contents(fragment_file);
 
@@ -116,17 +117,21 @@ t_shader* shader_ctor(const char* vertex_file, const char* fragment_file) {
   GLuint vertexShader   = _loadShader(GL_VERTEX_SHADER, vertex_source);
   GLuint fragmentShader = _loadShader(GL_FRAGMENT_SHADER, fragment_source);
 
-  _print_compile_errors(vertexShader, "VERTIX");
-  _print_compile_errors(fragmentShader, "FRAMINT");
+  _print_compile_errors(vertexShader, 2);
+  _print_compile_errors(fragmentShader, 1);
 
-  t_shader* self = malloc(sizeof(t_shader));
+  shader_t* self = malloc(sizeof(shader_t));
   self->ID = _buildProgram(vertexShader, fragmentShader, "vPosition");
+  _print_compile_errors(self->ID, 0);
+
 
   return self;
 }
 
-void shader_activate(const t_shader* self) {
+void shader_activate(const shader_t* self) {
   glUseProgram(self->ID);
 }
 
-void shader_delete(const t_shader* self);
+void shader_delete(const shader_t* self) {
+  
+}

@@ -14,13 +14,15 @@
 #include <emscripten.h>
 #endif
 
+#include "vbo.h"
+
 typedef struct {
   GLuint ID;
-} shader_t;
+} vao_t;
 
-shader_t* shader_ctor(const char* vertex_file, const char* fragment_file);
-
-void shader_activate(const shader_t* self);
-
-void shader_deactivate(const shader_t* self);
-
+vao_t* vao_ctor();
+void vao_link_vbo(vao_t* self, vbo_t* vbo, GLuint layout);
+void vao_bind  (vao_t* self);
+void vao_unbind(vao_t* self);
+void vao_delete(vao_t* self);
+ 
