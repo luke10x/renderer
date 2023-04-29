@@ -2,8 +2,10 @@
 
 attribute vec4 aPos;
 attribute vec3 aColor;
+attribute vec2 aTex;
 
 varying vec3 color;
+varying vec2 texCoord;
 
 uniform float scale;
 
@@ -14,4 +16,5 @@ void main() {
       aPos.z + aPos.z * scale,
       1);
    color = aColor;
+   texCoord = aTex;
 }

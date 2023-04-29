@@ -19,8 +19,6 @@
 #include "ebo.h"
 #include "dataload.h"
 
-#include "stb/stb_image.h"
-
 shader_t* shaderProgram;
 
 int main() {
@@ -158,7 +156,8 @@ int main() {
   vao_bind(VAO1);
 
   // Draw primitives, number of indices, datatype of indices, index of indices
-  glDrawElements(GL_TRIANGLES, 9, GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  
   // Swap the back buffer with the front buffer
   glfwSwapBuffers(window);
   // Take care of all GLFW events
