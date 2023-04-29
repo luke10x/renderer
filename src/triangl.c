@@ -19,6 +19,8 @@
 #include "ebo.h"
 #include "dataload.h"
 
+#include "texture.h"
+
 shader_t* shaderProgram;
 
 int main() {
@@ -102,45 +104,14 @@ int main() {
   GLuint uniID = glGetUniformLocation(shaderProgram->ID, "scale");
 
   // Texture
-  t_material* material = malloc(sizeof(t_material));
-  material_load_from_ppm("30-03-ground-with-grass-on-top", &material, 1);
-
-  int widthImg = material->width;
-  int heightImg = material->height;
-  int numColCh = 10;
-
-  unsigned char* bytes = (unsigned char*) material->pixels;
-  // unsigned char* bytes = stbi_load(
-  //   "assets/png/30-03-ground-with-grass-on-top.png",
-  //   &widthImg, &heightImg, &numColCh, 0
-  // );
-
-  GLuint texture;
-  glGenTextures(1, &texture);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, texture);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-// glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, widthImg, heightImg, 0, GL_RGB, GL_UNSIGNED_BYTE, bytes);
-  
-  printf("pixels %s %dx%d .. \n", bytes,widthImg, heightImg );
-
-
-    glGenerateMipmap(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, 0);
-
-  GLuint tex0Uni = glGetUniformLocation(shaderProgram->ID, "tex0");
-  shader_activate(shaderProgram);
-  // glUniform1i(tex0Uni, 0);
-
+  texture_t* pop_cat = texture_ctor(
+    "30-03-ground-with-grass-on-top",
+     GL_TEXTURE_2D, GL_TEXTURE0, GL_RGB, GL_UNSIGNED_BYTE
+  );
+  texture_unit(pop_cat, shaderProgram, "tex0", 0);
 
   // LOOP can start here //
-  printf("llop\n");
+  printf("Main loop\n");
 
   // Specify the color of the background
   glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
@@ -150,7 +121,8 @@ int main() {
   shader_activate(shaderProgram);
 
   glUniform1f(uniID, 0.5f);
-  glBindTexture(GL_TEXTURE_2D, texture);
+  
+  texture_bind(pop_cat);
 
   // Bind the VAO so OpenGL knows to use it
   vao_bind(VAO1);

@@ -15,6 +15,13 @@ main.app:
 	src/main.c -o main.app
 
 
+texture.o:
+	clang src/texture.c -c -o tmp/texture.o \
+	-DGL_SILENCE_DEPRECATION \
+	-I/opt/homebrew/Cellar/glfw/3.3.8/include \
+	-I/opt/homebrew/Cellar/glew/2.2.0_1/include
+
+
 shader.o:
 	clang src/shader.c -c -o tmp/shader.o \
 	-DGL_SILENCE_DEPRECATION \
@@ -41,7 +48,7 @@ vbo.o:
 
 
 
-triangl.app: shader.o ebo.o vbo.o vao.o dataload.o
+triangl.app: texture.o shader.o ebo.o vbo.o vao.o dataload.o
 	clang \
 	-DGL_SILENCE_DEPRECATION \
 	-I/opt/homebrew/Cellar/glfw/3.3.8/include \
@@ -49,7 +56,7 @@ triangl.app: shader.o ebo.o vbo.o vao.o dataload.o
 	-L/opt/homebrew/lib \
 	-lglfw -lglew -framework CoreVideo -framework OpenGL -framework GLUT  \
 	-framework IOKit -framework Cocoa -framework Carbon \
-	src/triangl.c tmp/dataload.o tmp/shader.o tmp/vao.o tmp/ebo.o tmp/vbo.o -o triangl.app
+	src/triangl.c tmp/texture.o tmp/dataload.o tmp/shader.o tmp/vao.o tmp/ebo.o tmp/vbo.o -o triangl.app
 
 clean:
 	rm -f tmp/*.o
