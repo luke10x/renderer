@@ -10,7 +10,7 @@
 #define MAX_FACES 2048
 #define MAX_VERTICES 2048
 
-void material_load_from_ppm(const char* file_basename, t_material** material) {
+void material_load_from_ppm(const char* file_basename, t_material** material, int flip) {
   const char* directory_path = "./assets/ppm/";
   const char* extension = ".ppm";
   char* filename = malloc(strlen(directory_path) + strlen(file_basename) + strlen(extension) + 1);
@@ -83,15 +83,28 @@ void material_load_from_ppm(const char* file_basename, t_material** material) {
     return;
   }
 
-  // Read pixel data
-  int i = 0;
-  uint8_t buffer[3];
-  while (i < width * height && fread(buffer, 1, 3, fp) == 3) {
-    pixels[i].r = buffer[0] * 255 / max_val;
-    pixels[i].g = buffer[1] * 255 / max_val;
-    pixels[i].b = buffer[2] * 255 / max_val;
+// Read pixel data
+int i = 0;
+uint8_t buffer[3];
+int row_offset = (flip ? height - 1 : 0);
+int row_step = (flip ? -1 : 1);
+for (int row = row_offset; row >= 0 && row < height; row += row_step) {
+  for (int col = 0; col < width && fread(buffer, 1, 3, fp) == 3; col++) {
+    pixels[row * width + col].r = buffer[0] * 255 / max_val;
+    pixels[row * width + col].g = buffer[1] * 255 / max_val;
+    pixels[row * width + col].b = buffer[2] * 255 / max_val;
     i++;
   }
+}
+  // // Read pixel data
+  // int i = 0;
+  // uint8_t buffer[3];
+  // while (i < width * height && fread(buffer, 1, 3, fp) == 3) {
+  //   pixels[i].r = buffer[0] * 255 / max_val;
+  //   pixels[i].g = buffer[1] * 255 / max_val;
+  //   pixels[i].b = buffer[2] * 255 / max_val;
+  //   i++;
+  // }
 
   (*material)->name = strdup(file_basename);
   (*material)->pixels = pixels;
@@ -158,7 +171,7 @@ int faces_load_from_file(const char* filename, t_face** faces) {
         char* filename = strndup(line + 7,  strlen(line + 7) - 1); // Skip "usemtl " prefix
         // TODO Optimize, do not load pixes of already loaded files
         t_material* material = &M[m_count];
-        material_load_from_ppm(filename, &material);
+        material_load_from_ppm(filename, &material, 0);
       }
 
       // Finally faces

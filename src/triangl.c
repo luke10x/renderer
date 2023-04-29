@@ -17,7 +17,9 @@
 #include "vao.h"
 #include "vbo.h"
 #include "ebo.h"
+#include "dataload.h"
 
+#include "stb/stb_image.h"
 
 shader_t* shaderProgram;
 
@@ -66,23 +68,22 @@ int main() {
   shaderProgram = shader_ctor("src/shaders/default-100.vert", "src/shaders/default-100.frag");
 #endif
 
+  // Vertices coordinates
   GLfloat vertices[] =
-  { //               COORDINATES                  /     COLORS           //
-    -0.5f, -0.5f * (float)(sqrt(3)) * 1 / 3, 0.0f,     0.8f, 0.3f,  0.02f, // Lower left corner
-    0.5f,  -0.5f * (float)(sqrt(3)) * 1 / 3, 0.0f,     0.8f, 0.3f,  0.02f, // Lower right corner
-    0.0f,   0.5f * (float)(sqrt(3)) * 2 / 3, 0.0f,     1.0f, 0.6f,  0.32f, // Upper corner
-    -0.25f, 0.5f * (float)(sqrt(3)) * 1 / 6, 0.0f,     0.9f, 0.45f, 0.17f, // Inner left
-    0.25f,  0.5f * (float)(sqrt(3)) * 1 / 6, 0.0f,     0.9f, 0.45f, 0.17f, // Inner right
-    0.0f,  -0.5f * (float)(sqrt(3)) * 1 / 3, 0.0f,     0.8f, 0.3f,  0.02f  // Inner down
+  { //     COORDINATES   /        COLORS      /   TexCoord  //
+    -0.5f, -0.5f, 0.0f,     1.0f, 0.0f, 0.0f,    0.0f, 0.0f, // Lower left corner
+    -0.5f,  0.5f, 0.0f,     0.0f, 1.0f, 0.0f,    0.0f, 1.0f, // Upper left corner
+    0.5f,   0.5f, 0.0f,     0.0f, 0.0f, 1.0f,    1.0f, 1.0f, // Upper right corner
+    0.5f,  -0.5f, 0.0f,     1.0f, 1.0f, 1.0f,    1.0f, 0.0f  // Lower right corner
   };
 
-	// Indices for vertices order
-	GLuint indices[] =
-	{
-		0, 3, 5, // Lower left triangle
-		3, 2, 4, // Lower right triangle
-		5, 4, 1  // Upper triangle
-	};
+  // Indices for vertices order
+  GLuint indices[] =
+  {
+    0, 2, 1, // Upper triangle
+    0, 3, 2 // Lower triangle
+  };
+
 	// Generates Vertex Array Object and binds it
 	vao_t* VAO1 = vao_ctor();
   vao_bind(VAO1);
@@ -93,15 +94,55 @@ int main() {
 	ebo_t* EBO1 = ebo_ctor(indices, sizeof(indices));
 
   // Links VBO to VAO
-  vao_link_attrib(VAO1, VBO1, 0, 3, GL_FLOAT, 6 * sizeof(float), (void*)0);
-  vao_link_attrib(VAO1, VBO1, 1, 3, GL_FLOAT, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+  vao_link_attrib(VAO1, VBO1, 0, 3, GL_FLOAT, 8 * sizeof(float), (void*)0);
+  vao_link_attrib(VAO1, VBO1, 1, 3, GL_FLOAT, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+  vao_link_attrib(VAO1, VBO1, 2, 2, GL_FLOAT, 8 * sizeof(float), (void*)(6 * sizeof(float)));
   vao_unbind(VAO1);
   vbo_unbind(VBO1);
-  ebo_unbind(EBO1);
+  ebo_unbind(EBO1); 
 
   GLuint uniID = glGetUniformLocation(shaderProgram->ID, "scale");
 
+  // Texture
+  t_material* material = malloc(sizeof(t_material));
+  material_load_from_ppm("30-03-ground-with-grass-on-top", &material, 1);
+
+  int widthImg = material->width;
+  int heightImg = material->height;
+  int numColCh = 10;
+
+  unsigned char* bytes = (unsigned char*) material->pixels;
+  // unsigned char* bytes = stbi_load(
+  //   "assets/png/30-03-ground-with-grass-on-top.png",
+  //   &widthImg, &heightImg, &numColCh, 0
+  // );
+
+  GLuint texture;
+  glGenTextures(1, &texture);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+// glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, widthImg, heightImg, 0, GL_RGB, GL_UNSIGNED_BYTE, bytes);
+  
+  printf("pixels %s %dx%d .. \n", bytes,widthImg, heightImg );
+
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  GLuint tex0Uni = glGetUniformLocation(shaderProgram->ID, "tex0");
+  shader_activate(shaderProgram);
+  // glUniform1i(tex0Uni, 0);
+
+
   // LOOP can start here //
+  printf("llop\n");
 
   // Specify the color of the background
   glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
@@ -111,6 +152,7 @@ int main() {
   shader_activate(shaderProgram);
 
   glUniform1f(uniID, 0.5f);
+  glBindTexture(GL_TEXTURE_2D, texture);
 
   // Bind the VAO so OpenGL knows to use it
   vao_bind(VAO1);

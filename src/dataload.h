@@ -31,3 +31,5 @@ struct t_face {
 struct t_object {
   char* name;
 };
+
+void material_load_from_ppm(const char* file_basename, t_material** material, int flip);
