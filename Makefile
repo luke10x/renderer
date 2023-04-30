@@ -51,6 +51,7 @@ vbo.o:
 triangl.app: texture.o shader.o ebo.o vbo.o vao.o dataload.o
 	clang \
 	-DGL_SILENCE_DEPRECATION \
+	-I/opt/homebrew/Cellar/cglm/0.8.9/include \
 	-I/opt/homebrew/Cellar/glfw/3.3.8/include \
 	-I/opt/homebrew/Cellar/glew/2.2.0_1/include \
 	-L/opt/homebrew/lib \
