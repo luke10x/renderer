@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 #ifdef __APPLE__
 #include <OpenGL/gl3.h>
@@ -21,6 +22,91 @@
 
 #include "texture.h"
 
+typedef struct {
+    float x;
+    float y;
+    float z;
+} vec3_t;
+
+typedef float mat4_t[16];
+
+void mat4_rotate(mat4_t m, float angle, vec3_t axis) {
+    float c = cos(angle);
+    float s = sin(angle);
+    float x = axis.x, y = axis.y, z = axis.z;
+    float len = sqrt(x * x + y * y + z * z);
+    if (len == 0.0f) return;
+    x /= len;
+    y /= len;
+    z /= len;
+
+    float t = 1.0f - c;
+    float tx = t * x, ty = t * y, tz = t * z;
+    float sxy = tx * y, sxz = tx * z, syz = ty * z;
+    float sx = s * x, sy = s * y, sz = s * z;
+
+    mat4_t r = {
+        c + tx * x, s * z + sxy, -s * y + sxz, 0.0f,
+        -s * z + sxy, c + ty * y, s * x + syz, 0.0f,
+        s * y + sxz, -s * x + syz, c + tz * z, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+
+    mat4_t tmp;
+    memcpy(tmp, m, sizeof(mat4_t));
+    for (int i = 0; i < 4; i++) {
+        m[i] = tmp[i] * r[0] + tmp[i + 4] * r[1] + tmp[i + 8] * r[2] + tmp[i + 12] * r[3];
+        m[i + 4] = tmp[i] * r[4] + tmp[i + 4] * r[5] + tmp[i + 8] * r[6] + tmp[i + 12] * r[7];
+        m[i + 8] = tmp[i] * r[8] + tmp[i + 4] * r[9] + tmp[i + 8] * r[10] + tmp[i + 12] * r[11];
+        m[i + 12] = tmp[i] * r[12] + tmp[i + 4] * r[13] + tmp[i + 8] * r[14] + tmp[i + 12] * r[15];
+    }
+}
+// Helper function definition
+vec3_t vec3(float x, float y, float z) {
+    vec3_t result;
+    result.x = x;
+    result.y = y;
+    result.z = z;
+    return result;
+}
+
+void mat4_translate(float *mat, vec3_t vec) {
+    mat[12] += vec.x;
+    mat[13] += vec.y;
+    mat[14] += vec.z;
+}
+
+float radians(float degrees) {
+    return degrees * M_PI / 180.0f;
+}
+
+void perspective(float *mat4, float fovy_radians, float aspect, float zNear, float zFar) {
+    float tanHalfFovy = tanf(fovy_radians / 2.0f);
+    float top = zNear * tanHalfFovy;
+    float bottom = -top;
+    float right = aspect * top;
+    float left = -right;
+    
+    mat4[0] = 2.0f * zNear / (right - left);
+    mat4[1] = 0.0f;
+    mat4[2] = 0.0f;
+    mat4[3] = 0.0f;
+
+    mat4[4] = 0.0f;
+    mat4[5] = 2.0f * zNear / (top - bottom);
+    mat4[6] = 0.0f;
+    mat4[7] = 0.0f;
+
+    mat4[8] = (right + left) / (right - left);
+    mat4[9] = (top + bottom) / (top - bottom);
+    mat4[10] = -(zFar + zNear) / (zFar - zNear);
+    mat4[11] = -1.0f;
+
+    mat4[12] = 0.0f;
+    mat4[13] = 0.0f;
+    mat4[14] = -(2.0f * zFar * zNear) / (zFar - zNear);
+    mat4[15] = 0.0f;
+}
 shader_t* shaderProgram;
 
 int main() {
@@ -70,18 +156,23 @@ int main() {
 
   // Vertices coordinates
   GLfloat vertices[] =
-  { //     COORDINATES   /        COLORS      /   TexCoord  //
-    -0.5f, -0.5f, 0.0f,     1.0f, 0.0f, 0.0f,    0.0f, 0.0f, // Lower left corner
-    -0.5f,  0.5f, 0.0f,     0.0f, 1.0f, 0.0f,    0.0f, 1.0f, // Upper left corner
-    0.5f,   0.5f, 0.0f,     0.0f, 0.0f, 1.0f,    1.0f, 1.0f, // Upper right corner
-    0.5f,  -0.5f, 0.0f,     1.0f, 1.0f, 1.0f,    1.0f, 0.0f  // Lower right corner
+  { //     COORDINATES     /        COLORS      /   TexCoord  //
+    -0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,	0.0f, 0.0f,
+    -0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	5.0f, 0.0f,
+    0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	0.0f, 0.0f,
+    0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,	5.0f, 0.0f,
+    0.0f, 0.8f,  0.0f,     0.92f, 0.86f, 0.76f,	2.5f, 5.0f
   };
 
   // Indices for vertices order
   GLuint indices[] =
   {
-    0, 2, 1, // Upper triangle
-    0, 3, 2 // Lower triangle
+    0, 1, 2,
+    0, 2, 3,
+    0, 1, 4,
+    1, 2, 4,
+    2, 3, 4,
+    3, 0, 4
   };
 
 	// Generates Vertex Array Object and binds it
@@ -113,12 +204,7 @@ int main() {
   // LOOP can start here //
   printf("Main loop\n");
 
-  // Specify the color of the background
-  glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
-  // Clean the back buffer and assign the new color to it
-  glClear(GL_COLOR_BUFFER_BIT);
-  // Tell OpenGL which Shader Program we want to use
-  shader_activate(shaderProgram);
+
 
   glUniform1f(uniID, 0.5f);
   
@@ -127,17 +213,65 @@ int main() {
   // Bind the VAO so OpenGL knows to use it
   vao_bind(VAO1);
 
-  // Draw primitives, number of indices, datatype of indices, index of indices
-  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-  
-  // Swap the back buffer with the front buffer
-  glfwSwapBuffers(window);
-  // Take care of all GLFW events
-  glfwPollEvents();
+
+	// Variables that help the rotation of the pyramid
+	float rotation = 0.0f;
+	double prevTime = glfwGetTime();
+
+  	// Enables the Depth Buffer
+	glEnable(GL_DEPTH_TEST);
+
 #ifdef __APPLE__
 	// Main while loop
 	while (!glfwWindowShouldClose(window)) {
-		glfwPollEvents();
+    // Specify the color of the background
+    glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+    // Clean the back buffer and assign the new color to it
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Tell OpenGL which Shader Program we want to use
+    shader_activate(shaderProgram);
+
+		// Simple timer
+		double crntTime = glfwGetTime();
+		if (crntTime - prevTime >= 1 / 60)
+		{
+			rotation += 0.5f;
+			prevTime = crntTime;
+		}
+    float model[16] = {1.0f, 0.0f, 0.0f, 0.0f,
+                      0.0f, 1.0f, 0.0f, 0.0f,
+                      0.0f, 0.0f, 1.0f, 0.0f,
+                      0.0f, 0.0f, 0.0f, 1.0f};
+
+    float view[16]  = {1.0f, 0.0f, 0.0f, 0.0f,
+                      0.0f, 1.0f, 0.0f, 0.0f,
+                      0.0f, 0.0f, 1.0f, 0.0f,
+                      0.0f, 0.0f, 0.0f, 1.0f};
+
+    float proj[16]  = {1.0f, 0.0f, 0.0f, 0.0f,
+                      0.0f, 1.0f, 0.0f, 0.0f,
+                      0.0f, 0.0f, 1.0f, 0.0f,
+                      0.0f, 0.0f, 0.0f, 1.0f};     
+
+    mat4_rotate(model, radians(rotation), vec3(0.0f, 1.0f, 0.0f));
+    mat4_translate(view, vec3(0.0f, -0.5f, -2.0f));
+    perspective(proj, radians(45.0f), (float)w / h, 0.1f, 100.0f);
+
+    int model_loc = glGetUniformLocation(shaderProgram->ID, "model");
+    glUniformMatrix4fv(model_loc, 1, GL_FALSE, (GLfloat*)&model);
+
+    int view_loc = glGetUniformLocation(shaderProgram->ID, "view");
+    glUniformMatrix4fv(view_loc, 1, GL_FALSE, (GLfloat*)(&view));
+
+    int proj_loc = glGetUniformLocation(shaderProgram->ID, "proj");
+    glUniformMatrix4fv(proj_loc, 1, GL_FALSE, (GLfloat*)(&proj));
+    // Draw primitives, number of indices, datatype of indices, index of indices
+    glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(int), GL_UNSIGNED_INT, 0);
+    
+    // Swap the back buffer with the front buffer
+    glfwSwapBuffers(window);
+    // Take care of all GLFW events
+    glfwPollEvents();
   }
 #endif
 }
