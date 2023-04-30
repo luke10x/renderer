@@ -48,8 +48,7 @@ build/triangl.html:
 		--preload-file ../src/shaders/default-100.vert@src/shaders/default-100.vert \
 		--preload-file ../src/shaders/default-100.frag@src/shaders/default-100.frag \
 		--preload-file \
-			../assets/ppm/30-03-ground-with-grass-on-top.ppm@assets/ppm/30-03-ground-with-grass-on-top.ppm
-
+			../assets/ppm/05-01-wall.ppm@assets/ppm/05-01-wall.ppm
 
 clean:
 	rm -fr build/

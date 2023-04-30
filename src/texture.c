@@ -15,7 +15,7 @@ texture_t* texture_ctor(
   self->type = tex_type;
 
   t_material* material = malloc(sizeof(t_material));
-  material_load_from_ppm("30-03-ground-with-grass-on-top", &material, 1);
+  material_load_from_ppm(image, &material, 1);
 
   int widthImg = material->width;
   int heightImg = material->height;

@@ -109,6 +109,18 @@ void perspective(float *mat4, float fovy_radians, float aspect, float zNear, flo
 }
 shader_t* shaderProgram;
 
+typedef struct {
+  GLsizei count;
+  float rotation;
+  double prev_time;
+  double crnt_time;
+  float aspect;
+  GLFWwindow* window ;
+}  main_loop_ctx_t;
+main_loop_ctx_t ctx;
+
+void main_loop();
+
 int main() {
   if (!glfwInit()) {
     fprintf(stderr, "Failed to init GLFW\n");
@@ -196,7 +208,9 @@ int main() {
 
   // Texture
   texture_t* pop_cat = texture_ctor(
-    "30-03-ground-with-grass-on-top",
+    // "04-12-wall",
+    // "02-04-wall",
+    "05-01-wall",
      GL_TEXTURE_2D, GL_TEXTURE0, GL_RGB, GL_UNSIGNED_BYTE
   );
   texture_unit(pop_cat, shaderProgram, "tex0", 0);
@@ -213,17 +227,26 @@ int main() {
   // Bind the VAO so OpenGL knows to use it
   vao_bind(VAO1);
 
-
 	// Variables that help the rotation of the pyramid
-	float rotation = 0.0f;
-	double prevTime = glfwGetTime();
+	ctx.rotation = 0.0f;
+	ctx.prev_time = glfwGetTime();
+  ctx.count = sizeof(indices) / sizeof(int);
+  ctx.aspect = (float)w / h;
+  ctx.window = window;
 
   	// Enables the Depth Buffer
 	glEnable(GL_DEPTH_TEST);
 
-#ifdef __APPLE__
+#ifdef __EMSCRIPTEN__
+  int fps = 0; // Use browser's requestAnimationFrame
+  emscripten_set_main_loop(main_loop, fps, 1);
+#else
 	// Main while loop
-	while (!glfwWindowShouldClose(window)) {
+	while (!glfwWindowShouldClose(window)) { main_loop(); }
+#endif
+}
+
+void main_loop() {
     // Specify the color of the background
     glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
     // Clean the back buffer and assign the new color to it
@@ -233,10 +256,10 @@ int main() {
 
 		// Simple timer
 		double crntTime = glfwGetTime();
-		if (crntTime - prevTime >= 1 / 60)
+		if (crntTime - ctx.prev_time >= 1 / 60)
 		{
-			rotation += 0.5f;
-			prevTime = crntTime;
+			ctx.rotation += 0.5f;
+			ctx.prev_time = crntTime;
 		}
     float model[16] = {1.0f, 0.0f, 0.0f, 0.0f,
                       0.0f, 1.0f, 0.0f, 0.0f,
@@ -253,9 +276,9 @@ int main() {
                       0.0f, 0.0f, 1.0f, 0.0f,
                       0.0f, 0.0f, 0.0f, 1.0f};     
 
-    mat4_rotate(model, radians(rotation), vec3(0.0f, 1.0f, 0.0f));
+    mat4_rotate(model, radians(ctx.rotation), vec3(0.0f, 1.0f, 0.0f));
     mat4_translate(view, vec3(0.0f, -0.5f, -2.0f));
-    perspective(proj, radians(45.0f), (float)w / h, 0.1f, 100.0f);
+    perspective(proj, radians(45.0f), ctx.aspect, 0.1f, 100.0f);
 
     int model_loc = glGetUniformLocation(shaderProgram->ID, "model");
     glUniformMatrix4fv(model_loc, 1, GL_FALSE, (GLfloat*)&model);
@@ -266,12 +289,10 @@ int main() {
     int proj_loc = glGetUniformLocation(shaderProgram->ID, "proj");
     glUniformMatrix4fv(proj_loc, 1, GL_FALSE, (GLfloat*)(&proj));
     // Draw primitives, number of indices, datatype of indices, index of indices
-    glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(int), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, ctx.count, GL_UNSIGNED_INT, 0);
     
     // Swap the back buffer with the front buffer
-    glfwSwapBuffers(window);
+    glfwSwapBuffers(ctx.window);
     // Take care of all GLFW events
     glfwPollEvents();
-  }
-#endif
 }
