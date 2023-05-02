@@ -11,6 +11,9 @@ typedef struct {
   vec3 Orientation;
   vec3 Up;
 
+	// Prevents the camera from jumping around when first clicking left click
+	int firstClick;
+
   int width;
   int height;
 
@@ -23,15 +26,17 @@ camera_t* camera_ctor(int width, int height, vec3 position) {
   camera_t* self = malloc(sizeof(camera_t));
 
   glm_vec3_copy(position, self->Position);
+  //                     //  x     z    y
+  // glm_vec3_copy((vec3){ 0.5f, 0.25f, 8.0f}, self->Position); // should not be here 
+  // glm_vec3_copy((vec3){ -0.25f, 0.0f, -1.0f }, self->Orientation);
+  // glm_vec3_copy((vec3){ 0.0f, 0.1f, 0.0f }, self->Up);
 
-  glm_vec3_copy((vec3){ 0.0f, -1.2f, 1.0f}, self->Position); // should not be here 
-  glm_vec3_copy((vec3){ 0.0f, 0.1f, -0.1f }, self->Orientation);
-  glm_vec3_copy((vec3){ 0.0f, 0.0f, 1.0f }, self->Up);
-
-  // glm_vec3_copy((vec3){ 0.0f, 0.0f, -1.0f }, self->Orientation);
-  // glm_vec3_copy((vec3){ 0.0f, 0.0f, 1.0f }, self->Up);
+  glm_vec3_copy((vec3){ 0.0f, 0.0f, -1.0f }, self->Orientation);
+  glm_vec3_copy((vec3){ 0.0f, 1.0f, 0.0f }, self->Up);
   self->width = width;
   self->height = height;
+
+  self->firstClick = 0;
 
   self->speed = 0.1f;
   self->sensitivity = 100.0f;
@@ -137,18 +142,16 @@ void camera_inputs(camera_t* self, GLFWwindow* window) {
 		self->speed = 0.1f;
 	}
 
-/*
 	// Handles mouse inputs
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-	{
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 		// Hides mouse cursor
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
 		// Prevents camera from jumping on the first click
-		if (firstClick)
+		if (self->firstClick == 1)
 		{
-			glfwSetCursorPos(window, (width / 2), (height / 2));
-			firstClick = false;
+			glfwSetCursorPos(window, (self->width / 2), (self->height / 2));
+			self->firstClick = 0;
 		}
 
 		// Stores the coordinates of the cursor
@@ -159,30 +162,35 @@ void camera_inputs(camera_t* self, GLFWwindow* window) {
 
 		// Normalizes and shifts the coordinates of the cursor such that they begin in the middle of the screen
 		// and then "transforms" them into degrees 
-		float rotX = sensitivity * (float)(mouseY - (height / 2)) / height;
-		float rotY = sensitivity * (float)(mouseX - (width / 2)) / width;
+		float rotX = self->sensitivity * (float)(mouseY - (self->height / 2)) / self->height;
+		float rotY = self->sensitivity * (float)(mouseX - (self->width / 2)) /  self->width;
 
 		// Calculates upcoming vertical change in the Orientation
-		glm::vec3 newOrientation = glm::rotate(Orientation, glm::radians(-rotX), glm::normalize(glm::cross(Orientation, Up)));
+    vec3 crossed, normalized, orientation_copy;
 
+    glm_vec3_copy(self->Orientation, orientation_copy);
+    glm_vec3_cross(self->Orientation, self->Up, crossed);
+    glm_normalize_to(crossed, normalized);
+    glm_vec3_rotate(orientation_copy, glm_rad(-rotX), normalized);
+
+    float angle = glm_vec3_angle(normalized, self->Up);
 		// Decides whether or not the next vertical Orientation is legal or not
-		if (abs(glm::angle(newOrientation, Up) - glm::radians(90.0f)) <= glm::radians(85.0f))
-		{
-			Orientation = newOrientation;
+		if (abs(angle - glm_rad(90.0f)) <= glm_rad(85.0f)) {
+			// Orientation = newOrientation;
+      glm_vec3_copy(orientation_copy, self->Orientation);
 		}
 
 		// Rotates the Orientation left and right
-		Orientation = glm::rotate(Orientation, glm::radians(-rotY), Up);
+    glm_vec3_rotate(self->Orientation, glm_rad(-rotY), self->Up);
 
 		// Sets mouse cursor to the middle of the screen so that it doesn't end up roaming around
-		glfwSetCursorPos(window, (width / 2), (height / 2));
+		glfwSetCursorPos(window, (self->width / 2), (self->height / 2));
 	}
 	else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
 	{
 		// Unhides cursor since camera is not looking around anymore
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		// Makes sure the next time the camera looks around it doesn't jump
-		firstClick = true;
+		self->firstClick = 1;
 	}
-*/
 }
