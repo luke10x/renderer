@@ -44,9 +44,11 @@ build/triangl.html:
 	emcc ../src/triangl.c \
 		./build/texture.o ./build/dataload.o ./build/shader.o ./build/ebo.o ./build/vbo.o ./build/vao.o -o ./build/triangl.html \
 		-s FULL_ES2=1 -s USE_GLFW=3 -O0 \
-				-s ALLOW_MEMORY_GROWTH=1 -s GL_UNSAFE_OPTS=0 \
+		-s ALLOW_MEMORY_GROWTH=1 -s GL_UNSAFE_OPTS=0 \
 		--preload-file ../src/shaders/default-100.vert@src/shaders/default-100.vert \
 		--preload-file ../src/shaders/default-100.frag@src/shaders/default-100.frag \
+		--preload-file ../src/shaders/light-100.vert@src/shaders/light-100.vert \
+		--preload-file ../src/shaders/light-100.frag@src/shaders/light-100.frag \
 		--preload-file \
 			../assets/ppm/05-01-wall.ppm@assets/ppm/05-01-wall.ppm
 

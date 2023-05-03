@@ -77,14 +77,15 @@ GLuint _loadShader(GLenum type, const char *source)
   // check if the shader compiled successfully
   GLint compiled;
   glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-  if (!compiled)
-  {
+  if (!compiled) {
     fprintf(stderr, "Shader compilation error\n");
     glDeleteShader(shader);
     return 0;
+  } else {
+    fprintf(stdout, "Success\n");
   }
   return shader;
-}
+} 
 
 GLuint _buildProgram(
   GLuint vertexShader,
@@ -115,7 +116,9 @@ shader_t* shader_ctor(const char* vertex_file, const char* fragment_file) {
   char* fragment_source = _get_file_contents(fragment_file);
 
   // load vertex and fragment shaders
+  fprintf(stdout, "Compiling Shader:\n%s\n", vertex_file);
   GLuint vertexShader   = _loadShader(GL_VERTEX_SHADER, vertex_source);
+  fprintf(stdout, "Compiling shader:\n%s\n", fragment_file);
   GLuint fragmentShader = _loadShader(GL_FRAGMENT_SHADER, fragment_source);
 
 

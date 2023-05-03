@@ -11,6 +11,8 @@ typedef struct {
   vec3 Orientation;
   vec3 Up;
 
+  mat4 camera_matrix;
+
 	// Prevents the camera from jumping around when first clicking left click
 	int firstClick;
 
@@ -31,8 +33,10 @@ camera_t* camera_ctor(int width, int height, vec3 position) {
   // glm_vec3_copy((vec3){ -0.25f, 0.0f, -1.0f }, self->Orientation);
   // glm_vec3_copy((vec3){ 0.0f, 0.1f, 0.0f }, self->Up);
 
-  glm_vec3_copy((vec3){ 0.0f, 0.0f, -1.0f }, self->Orientation);
-  glm_vec3_copy((vec3){ 0.0f, 1.0f, 0.0f }, self->Up);
+  glm_vec3_copy((vec3){ 0.0f, 0.0f, -1.0f },  self->Orientation);
+  glm_vec3_copy((vec3){ 0.0f, 1.0f, 0.0f },   self->Up);
+  glm_mat4_copy((mat4)GLM_MAT4_IDENTITY_INIT, self->camera_matrix);
+
   self->width = width;
   self->height = height;
 
@@ -44,13 +48,11 @@ camera_t* camera_ctor(int width, int height, vec3 position) {
   return self;
 }
 
-void camera_matrix(
+void camera_update_matrix(
   camera_t* self,
   float fov_deg,
   float near_plane,
-  float far_plane,
-  shader_t* shader,
-  const char* uniform
+  float far_plane
 ) {
   float aspect = (float) self->width / self->height;
 
@@ -63,13 +65,17 @@ void camera_matrix(
   mat4 projection = GLM_MAT4_IDENTITY_INIT;
   glm_perspective(glm_rad(fov_deg), aspect, near_plane, far_plane, projection);
 
-  mat4 mvp = GLM_MAT4_IDENTITY_INIT;
-  glm_mat4_mul(projection, view, mvp);
-
-  GLuint location = glGetUniformLocation(shader->ID, uniform);
-  glUniformMatrix4fv(location, 1, GL_FALSE, (GLfloat*)mvp);
+  glm_mat4_mul(projection, view, self->camera_matrix);
 }
 
+void camera_matrix(
+  camera_t* self,
+  shader_t* shader,
+  const char* uniform
+) {
+  GLuint location = glGetUniformLocation(shader->ID, uniform);
+  glUniformMatrix4fv(location, 1, GL_FALSE, (GLfloat*)(self->camera_matrix));
+}
 void camera_inputs(camera_t* self, GLFWwindow* window) {
 	// Handles key inputs
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
@@ -175,8 +181,8 @@ void camera_inputs(camera_t* self, GLFWwindow* window) {
 
     float angle = glm_vec3_angle(normalized, self->Up);
 		// Decides whether or not the next vertical Orientation is legal or not
-		if (abs(angle - glm_rad(90.0f)) <= glm_rad(85.0f)) {
-			// Orientation = newOrientation;
+		if (fabsf(angle - glm_rad(90.0f)) <= glm_rad(85.0f)) {
+      printf("does it ever go here\n");
       glm_vec3_copy(orientation_copy, self->Orientation);
 		}
 
